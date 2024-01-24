@@ -1,6 +1,6 @@
-from scipy.special import perm as spperm  # type: ignore
-from scipy.special import comb as spcomb  # type: ignore
 from sympy import factorial as spfactorial
+from sympy.functions.combinatorial.numbers import nC as spnc
+from sympy.functions.combinatorial.numbers import nP as spnp
 from sympy import multinomial_coefficients as spmc
 
 # making these type safe (and probably slightly less efficient)
@@ -9,11 +9,11 @@ def fact(n: int) -> int:
     return int(spfactorial(n))
 
 def perm(n: int, k: int) -> int:
-    return int(spperm(n, k, exact=True))
+    return int(spnp(n, k, replacement=False))
 
 
 def comb(n: int, k: int) -> int:
-    return int(spcomb(n, k, exact=True, repetition=False))
+    return int(spnc(n, k, replacement=False))
 
 
 def mult(params: tuple[int, ...]) -> int:
