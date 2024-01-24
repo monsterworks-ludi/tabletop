@@ -1,6 +1,11 @@
 import sympy as sp
+from collections import defaultdict
+
+from icecream import ic  # type: ignore
 
 import adjacency_matrices as am
+
+ic.disable()
 
 x = sp.Symbol("x")
 v = sp.Symbol("v")
@@ -29,7 +34,7 @@ COLORS = (
 POINTS = {1: 1, 2: 2, 3: 4, 4: 7, 5: 10, 6: 15}
 
 
-def weight_by_adjacency(string):
+def weight_by_adjacency(_string):
     return 1
 
 
@@ -63,6 +68,50 @@ def connection_weight(matrix, origination, destination):
     return matrix[CITIES.index(destination), CITIES.index(origination)]
 
 
+# order should match that of original dictionary (so output will be consistent)
+def new_pendants_from_path(connections, path):
+    current_city = path[-1][1]
+    neighbors = connections[current_city]
+
+    visited_cities = {pendant[1] for pendant in path}
+    new_cities = [new_city for new_city in neighbors if new_city not in visited_cities]
+    pendantss = [[(stem, new_city) for stem in neighbors[new_city]]
+                 for new_city in new_cities]
+    pendants = [pendant for pendants in pendantss for pendant in pendants]
+    return pendants
+
+
+def find_all_paths(
+    connections, path, all_paths=None, destination=None, max_length=None
+):
+    ic.enable()
+    if max_length and len(path) > max_length:
+        return all_paths
+    if all_paths is None:
+        all_paths = defaultdict(lambda: [])
+    path = path.copy()
+    new_pendants = new_pendants_from_path(connections, path)
+    if destination is None and len(new_pendants) == 0:
+        all_paths[len(path) - 1].append(path)
+    for pendant in new_pendants:
+        new_path = path + [pendant]
+        if pendant[1] == destination:
+            all_paths[len(path) - 1].append(new_path)
+        else:
+            find_all_paths(connections, new_path, all_paths, destination, max_length)
+    ic.disable()
+    return all_paths
+
+def path_string(path):
+    string = ""
+    for i, edge in enumerate(path):
+        if i == 0:
+            string += f"{edge[1]}"
+        else:
+            string += f" -({edge[0]})- {edge[1]}"
+    return string
+
+
 # establish symbols for each space
 NE_CITIES = (
     montreal,
@@ -84,15 +133,15 @@ NE_CITIES = (
 
 NE_CONNECTIONS: dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]] = {
     montreal: {toronto: ("xx",), new_york: ("bbb",)},
-    boston: {new_york: ("yy", "rr")},
     toronto: {montreal: ("xx",), pittsburgh: ("xx",)},
+    pittsburgh: {toronto: ("xx",), new_york: ("ww", "gg")},
     new_york: {
         montreal: ("bbb",),
-        boston: ("yy", "rr"),
-        pittsburgh: ("gg", "ww"),
+        boston: ("rr", "yy"),
         washington: ("tt", "bb"),
+        pittsburgh: ("gg", "ww"),
     },
-    pittsburgh: {toronto: ("xx",), new_york: ("gg", "ww")},
+    boston: {new_york: ("yy", "rr")},
     washington: {new_york: ("tt", "bb")},
 }
 
