@@ -57,12 +57,12 @@ def test_build_matrix():
 
 def test_fod_simple():
     # walk count example, p. 72
-    south_matrix = am.submatrix(
+    south_matrix = am.submatrix_symbolic(
         fod.IBERIA_CITIES,
         fod.IBERIA_MATRIX,
         [fod.cadiz, fod.granada],
         [fod.lisbon, fod.madrid, fod.alicante])
-    north_matrix = am.submatrix(
+    north_matrix = am.submatrix_symbolic(
         fod.IBERIA_CITIES,
         fod.IBERIA_MATRIX,
         [fod.lisbon, fod.madrid, fod.alicante],

@@ -155,15 +155,15 @@ assert am.vertex_degrees_multi(NE_CONNECTIONS) == {
     washington: 2,
 }
 
-NE_ADJACENCY_MATRIX = am.build_weighted_matrix(
+NE_ADJACENCY_MATRIX = am.build_weighted_matrix_symbolic(
     NE_CITIES, NE_CONNECTIONS, weight_by_adjacency
 )
-NE_COST_MATRIX = am.build_weighted_matrix(NE_CITIES, NE_CONNECTIONS, weight_by_cost)
-NE_POINTS_MATRIX = am.build_weighted_matrix(NE_CITIES, NE_CONNECTIONS, weight_by_points)
-NE_COMBINED_MATRIX = am.build_weighted_matrix(
+NE_COST_MATRIX = am.build_weighted_matrix_symbolic(NE_CITIES, NE_CONNECTIONS, weight_by_cost)
+NE_POINTS_MATRIX = am.build_weighted_matrix_symbolic(NE_CITIES, NE_CONNECTIONS, weight_by_points)
+NE_COMBINED_MATRIX = am.build_weighted_matrix_symbolic(
     NE_CITIES, NE_CONNECTIONS, weight_by_cost_and_points
 )
-NE_COLOR_MATRIX = am.build_weighted_matrix(
+NE_COLOR_MATRIX = am.build_weighted_matrix_symbolic(
     NE_CITIES, NE_CONNECTIONS, weight_by_card_color
 )
 
@@ -511,13 +511,13 @@ assert am.vertex_degrees_multi(CONNECTIONS) == {
     miami: 3,
 }
 
-ADJACENCY_MATRIX = am.build_weighted_matrix(CITIES, CONNECTIONS, weight_by_adjacency)
-COST_MATRIX = am.build_weighted_matrix(CITIES, CONNECTIONS, weight_by_cost)
-POINTS_MATRIX = am.build_weighted_matrix(CITIES, CONNECTIONS, weight_by_points)
-COMBINED_MATRIX = am.build_weighted_matrix(
+ADJACENCY_MATRIX = am.build_weighted_matrix_symbolic(CITIES, CONNECTIONS, weight_by_adjacency)
+COST_MATRIX = am.build_weighted_matrix_symbolic(CITIES, CONNECTIONS, weight_by_cost)
+POINTS_MATRIX = am.build_weighted_matrix_symbolic(CITIES, CONNECTIONS, weight_by_points)
+COMBINED_MATRIX = am.build_weighted_matrix_symbolic(
     CITIES, CONNECTIONS, weight_by_cost_and_points
 )
-COLOR_POINTS_MATRIX = am.build_weighted_matrix(
+COLOR_POINTS_MATRIX = am.build_weighted_matrix_symbolic(
     CITIES, CONNECTIONS, weight_by_card_color_and_points
 )
 CITY_POINTS_MATRIX = sp.Matrix(

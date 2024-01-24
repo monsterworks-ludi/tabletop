@@ -9,7 +9,7 @@ from ticket_to_ride import x, v, b, g, p, r, t, w, y
 class TestSimple:
     @staticmethod
     def test_costs():
-        south_cost_matrix = am.submatrix(
+        south_cost_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COST_MATRIX,
             [ttr.pittsburgh, ttr.washington],
@@ -19,7 +19,7 @@ class TestSimple:
         assert south_cost_matrix.equals(
             sp.Matrix([[x**2, 2 * x**2], [0, 2 * x**2]])
         )
-        north_cost_matrix = am.submatrix(
+        north_cost_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COST_MATRIX,
             [ttr.toronto, ttr.new_york],
@@ -34,7 +34,7 @@ class TestSimple:
 
     @staticmethod
     def test_points():
-        south_points_matrix = am.submatrix(
+        south_points_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_POINTS_MATRIX,
             [ttr.pittsburgh, ttr.washington],
@@ -44,7 +44,7 @@ class TestSimple:
         assert south_points_matrix.equals(
             sp.Matrix([[v**2, 2 * v**2], [0, 2 * v**2]])
         )
-        north_points_matrix = am.submatrix(
+        north_points_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_POINTS_MATRIX,
             [ttr.toronto, ttr.new_york],
@@ -61,7 +61,7 @@ class TestSimple:
 
     @staticmethod
     def test_combined():
-        south_combined_matrix = am.submatrix(
+        south_combined_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COMBINED_MATRIX,
             [ttr.pittsburgh, ttr.washington],
@@ -73,7 +73,7 @@ class TestSimple:
                 [[x**2 * v**2, 2 * x**2 * v**2], [0, 2 * x**2 * v**2]]
             )
         )
-        north_combined_matrix = am.submatrix(
+        north_combined_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COMBINED_MATRIX,
             [ttr.toronto, ttr.new_york],
@@ -95,7 +95,7 @@ class TestSimple:
 
     @staticmethod
     def test_color():
-        south_color_matrix = am.submatrix(
+        south_color_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COLOR_MATRIX,
             [ttr.pittsburgh, ttr.washington],
@@ -105,7 +105,7 @@ class TestSimple:
         assert south_color_matrix.equals(
             sp.Matrix([[x**2, w**2 + g**2], [0, b**2 + t**2]])
         )
-        north_color_matrix = am.submatrix(
+        north_color_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COLOR_MATRIX,
             [ttr.toronto, ttr.new_york],
