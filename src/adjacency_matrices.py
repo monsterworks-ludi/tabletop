@@ -1,4 +1,5 @@
 import sympy as sp
+import itertools as it
 from collections import defaultdict
 
 from typing import Callable
@@ -7,22 +8,24 @@ from icecream import ic  # type: ignore
 ic.disable()
 
 
-def connection(
+def connection(connections, dest, orig):
+    return 0 if orig not in connections or dest not in connections[orig] else 1
+
+
+# could be rewritten in terms of connection
+def connection_symbolic(
     spaces: tuple[sp.Symbol],
     connections: dict[sp.Symbol, set[sp.Symbol]],
-    destination: int,
-    origin: int,
+    dest: int,
+    orig: int,
 ) -> int:
-    if (
-        spaces[origin] not in connections
-        or spaces[destination] not in connections[spaces[origin]]
-    ):
+    if spaces[orig] not in connections or spaces[dest] not in connections[spaces[orig]]:
         return 0
     else:
         return 1
 
 
-def weighted_connection(
+def weighted_connection_symbolic(
     spaces: tuple[sp.Symbol],
     connections: dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]],
     weigh: Callable,
@@ -54,19 +57,27 @@ def vertex_degrees_multi(connections):
     return degree_dict
 
 
-def build_matrix(
+def build_matrix(connections):
+    return sp.Matrix(
+        len(connections),
+        len(connections),
+        lambda origin, destination: connection(connections, origin, destination),
+    )
+
+
+def build_matrix_symbolic(
     spaces: tuple, connections: dict[sp.Symbol, set[sp.Symbol]]
 ) -> sp.Matrix:
     return sp.Matrix(
         len(spaces),
         len(spaces),
-        lambda origin, destination: connection(
+        lambda origin, destination: connection_symbolic(
             spaces, connections, origin, destination
         ),
     )
 
 
-def build_weighted_matrix(
+def build_weighted_matrix_symbolic(
     spaces: tuple[sp.Symbol],
     connections: dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]],
     weight: Callable,
@@ -74,13 +85,13 @@ def build_weighted_matrix(
     return sp.Matrix(
         len(spaces),
         len(spaces),
-        lambda origin, destination: weighted_connection(
+        lambda origin, destination: weighted_connection_symbolic(
             spaces, connections, weight, origin, destination
         ),
     )
 
 
-def submatrix(
+def submatrix_symbolic(
     spaces: tuple[sp.Symbol],
     matrix: sp.Matrix,
     destinations: list[sp.Symbol],
@@ -114,3 +125,26 @@ def most_connected_cities(
     neighbors = city_neighbors(cities, city_matrix)
     most_neighbors = max(neighbors)
     return most_neighbors, neighbors[most_neighbors]
+
+
+def absorbed(matrix: sp.Matrix, absorbing_states):
+    for dest in range(matrix.rows):
+        if dest in absorbing_states:
+            continue
+        for orig in range(matrix.cols):
+            if not matrix[dest, orig] == 0:
+                return False
+    return True
+
+def terminal_matrix(matrix, absorbing_states):
+    ad_power = sp.eye(matrix.cols)
+    for steps in it.count(1):
+        ad_power = ad_power * matrix  # one steps here
+        if absorbed(ad_power, absorbing_states):
+            break
+        if steps > 100:
+            raise RuntimeError("Too Many Steps")
+    else:
+        steps = None
+    return steps, ad_power
+
