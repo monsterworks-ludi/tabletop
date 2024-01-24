@@ -91,12 +91,12 @@ def find_all_paths(
         all_paths = defaultdict(lambda: [])
     path = path.copy()
     new_pendants = new_pendants_from_path(connections, path)
-    if destination is None and len(new_pendants) == 0:
+    if len(new_pendants) == 0 and destination is None:
         all_paths[len(path) - 1].append(path)
     for pendant in new_pendants:
         new_path = path + [pendant]
         if pendant[1] == destination:
-            all_paths[len(path) - 1].append(new_path)
+            all_paths[len(new_path) - 1].append(new_path)
         else:
             find_all_paths(connections, new_path, all_paths, destination, max_length)
     ic.disable()

@@ -222,6 +222,17 @@ class TestSimple:
             ],
         }
 
+    @staticmethod
+    def test_paths_to_toronto():
+        all_paths = ttr.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)], destination=ttr.toronto)
+        assert all_paths == {
+            1:
+                [[('', ttr.montreal), ('xx', ttr.toronto)]],
+            3:
+                [[('', ttr.montreal), ('bbb', ttr.new_york), ('gg', ttr.pittsburgh), ('xx', ttr.toronto)],
+                 [('', ttr.montreal), ('bbb', ttr.new_york), ('ww', ttr.pittsburgh), ('xx', ttr.toronto)]]
+        }
+
 
 class TestFull:
     @staticmethod
