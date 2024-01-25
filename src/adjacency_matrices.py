@@ -1,7 +1,8 @@
 import sympy as sp
 import itertools as it
+from collections import defaultdict
 
-from typing import Callable
+from typing import Callable, Optional
 from icecream import ic  # type: ignore
 
 ic.disable()
@@ -89,7 +90,7 @@ def weighted_connection_symbolic(
     weigh: Callable,
     row: int,
     col: int,
-) -> int:
+) -> sp.Expr:
     """
     Computes the weight associated with the connection between orig and dest using the weigh function and the symbols in
 
@@ -103,9 +104,9 @@ def weighted_connection_symbolic(
     dest = spaces[row]
     orig = spaces[col]
     if orig not in conn or dest not in conn[orig]:
-        return 0
+        return sp.parsing.parse_expr('0')
     else:
-        total_weight = 0
+        total_weight =sp.parsing.parse_expr('0')
         for label in conn[dest][orig]:
             total_weight += weigh(label)
         return total_weight
@@ -182,8 +183,7 @@ def submatrix_symbolic(
 
 
 def spaces_by_centrality(
-    spaces: Symbols,
-    matrix: sp.Matrix
+    spaces: Symbols, matrix: sp.Matrix
 ) -> dict[int, set[sp.Symbol]]:
     """
 
@@ -194,16 +194,17 @@ def spaces_by_centrality(
     rows = len(spaces)
     neighbors = matrix.applyfunc(lambda x: min(x, 1)) * sp.ones(rows, 1)
     result = {}
-    for size in range(rows + 1):  # a city could be adjacent to all other cities, including itself
+    for size in range(
+        rows + 1
+    ):  # a city could be adjacent to all other cities, including itself
         if size in neighbors:
-            result[size] = set({spaces[index] for index in range(rows) if neighbors[index] == size})
+            result[size] = set(
+                {spaces[index] for index in range(rows) if neighbors[index] == size}
+            )
     return result
 
 
-def centers(
-    spaces: Symbols,
-    matrix: sp.Matrix
-) -> tuple[int, set[sp.Symbol]]:
+def centers(spaces: Symbols, matrix: sp.Matrix) -> tuple[int, set[sp.Symbol]]:
     """
 
     :param spaces: a tuple specifying the symbols associated with each index
@@ -249,3 +250,56 @@ def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int], max_hops=10
         if hops > max_hops:
             raise RuntimeError("hop limit exceeded")
     return hops, ad_power
+
+
+Pendant = tuple[str, sp.Symbol]
+Path = list[Pendant]
+
+
+def new_pendants_from_path(conn: LabeledConnections, path: Path) -> list[Pendant]:
+    current_space = path[-1][1]
+    neighbors = conn[current_space]
+
+    visited_spaces = {pendant[1] for pendant in path}
+    new_spaces = [
+        new_space for new_space in neighbors if new_space not in visited_spaces
+    ]
+    pendantss = [
+        [(stem, new_space) for stem in neighbors[new_space]] for new_space in new_spaces
+    ]
+    pendants = [pendant for pendants in pendantss for pendant in pendants]
+    return pendants
+
+
+def find_all_paths(
+    conn: LabeledConnections,
+    path: Path,
+    all_paths: Optional[dict[int, list[Path]]] = None,
+    dest: Optional[sp.Symbol] = None,
+    max_length: Optional[int] = None,
+) -> Optional[dict[int, list[Path]]]:
+    if max_length and len(path) > max_length:
+        return all_paths
+    if all_paths is None:
+        all_paths = defaultdict(list)
+    path = path.copy()
+    new_pendants = new_pendants_from_path(conn, path)
+    if len(new_pendants) == 0 and dest is None:
+        all_paths[len(path) - 1].append(path)
+    for pendant in new_pendants:
+        new_path = path + [pendant]
+        if pendant[1] == dest:
+            all_paths[len(new_path) - 1].append(new_path)
+        else:
+            find_all_paths(conn, new_path, all_paths, dest, max_length)
+    return all_paths
+
+
+def path_string(path: Path) -> str:
+    string = ""
+    for i, edge in enumerate(path):
+        if i == 0:
+            string += f"{edge[1]}"  # type: ignore  # (seems to think edge is a sp.Symbol)
+        else:
+            string += f" -({edge[0]})- {edge[1]}"  # type: ignore  # (seems to think edge is a sp.Symbol)
+    return string
