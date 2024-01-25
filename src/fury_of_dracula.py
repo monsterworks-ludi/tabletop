@@ -1,7 +1,5 @@
 import sympy as sp
 
-from typing import Dict, Set
-
 import adjacency_matrices as am
 
 # establish symbols for each space
@@ -27,7 +25,7 @@ IBERIA_CITIES = (
 """
 )
 
-IBERIA_ROAD_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+IBERIA_ROAD_CONNECTIONS: am.SymbolicConnections = {
     santander: {saragossa, madrid, lisbon},
     saragossa: {barcelona, alicante, madrid, santander},
     barcelona: {saragossa},
@@ -38,7 +36,7 @@ IBERIA_ROAD_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
     granada: {alicante, cadiz, madrid},
 }
 
-IBERIA_RAIL_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+IBERIA_RAIL_CONNECTIONS: am.SymbolicConnections = {
     santander: {madrid},
     saragossa: {barcelona, madrid},
     barcelona: {saragossa, alicante},
@@ -228,7 +226,7 @@ SEAS = (
 
 SPACES = CITIES + SEAS
 
-ROAD_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+ROAD_CONNECTIONS: am.SymbolicConnections = {
     alicante: {granada, madrid, saragossa},
     amsterdam: {brussels, cologne},
     athens: {valona},
@@ -290,7 +288,7 @@ ROAD_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
     zurich: {strasbourg, geneva, marseilles, milan, munich, nuremberg},
 }
 
-YELLOW_RAIL_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+YELLOW_RAIL_CONNECTIONS: am.SymbolicConnections = {
     bari: {naples},
     belgrade: {szeged, sofia},
     berlin: {prague},
@@ -315,7 +313,7 @@ YELLOW_RAIL_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
     zurich: {milan},
 }
 
-WHITE_RAIL_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+WHITE_RAIL_CONNECTIONS: am.SymbolicConnections = {
     alicante: {madrid, barcelona},
     barcelona: {alicante, saragossa},
     berlin: {hamburg, cologne, leipzig},
@@ -344,7 +342,7 @@ WHITE_RAIL_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
     zurich: {strasbourg},
 }
 
-SEA_CONNECTIONS: Dict[sp.Symbol, Set[sp.Symbol]] = {
+SEA_CONNECTIONS: am.SymbolicConnections = {
     adriatic_sea: {venice, valona, ionian_sea, bari},
     venice: {adriatic_sea},
     valona: {adriatic_sea},
