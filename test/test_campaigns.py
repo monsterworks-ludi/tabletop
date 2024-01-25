@@ -1,25 +1,23 @@
-import sympy as sp
+from icecream import ic  # type: ignore
 
+import debug as db
 import adjacency_matrices as am
 
 
 def test_pandemic():
-    adjacency = sp.Matrix(
-        17,
-        17,
-        lambda dest, orig: (
-            1
-            if (
-                (dest == orig + 1)
-                or (orig % 2 == 0 and dest == orig + 2)
-                or (orig == 16 and dest == 16)
-            )
-            else 0
-        ),
-    )
-    steps, terminal_matrix = am.terminal_matrix(adjacency, (16,))
+    connections = {
+        vertex: {vertex + 1, vertex + 2} if vertex % 2 == 0 else {vertex + 1}
+        for vertex in range(17)
+    }
+    connections[16] = {16}
+    ic(connections)
+    matrix = am.build_matrix(connections)
+    steps, terminal_matrix = am.terminal_matrix(matrix, (16,))
     assert steps == 16
     assert terminal_matrix[16, 0] == 256
+    rev_conn = am.reverve_connections(connections)
+    counted_paths = am.count_all_directed_paths(rev_conn)
+    assert counted_paths[16] == 256
 
 
 def test_gloomhaven():
@@ -65,61 +63,42 @@ def test_gloomhaven():
     assert terminal_matrix[13, 0] == 5
     assert terminal_matrix[15, 0] == 6
     assert terminal_matrix[26, 0] == 22
+    #
+    rev_conn = am.reverve_connections(connections)
+    counted_paths = am.count_all_directed_paths(rev_conn)
+    assert counted_paths[11] == 5
+    assert counted_paths[13] == 5
+    assert counted_paths[15] == 6
+    assert counted_paths[26] == 22
 
 
 def test_hoplomachus():
-    # may be able to code this as a lambda function
-    connections = {
-        0: {1, 2, 3, 4},
-        #
-        1: {5, 6, 7, 8},
-        2: {5, 6, 7, 8},
-        3: {5, 6, 7, 8},
-        4: {5, 6, 7, 8},
-        #
-        5: {9, 10, 11, 12},
-        6: {9, 10, 11, 12},
-        7: {9, 10, 11, 12},
-        8: {9, 10, 11, 12},
-        #
-        9: {13, 14, 15, 16},
-        10: {13, 14, 15, 16},
-        11: {13, 14, 15, 16},
-        12: {13, 14, 15, 16},
-        #
-        13: {17},
-        14: {17},
-        15: {17},
-        16: {17},
-        #
-        17: {18, 19, 20, 21},
-        #
-        18: {22, 23, 24, 25},
-        19: {22, 23, 24, 25},
-        20: {22, 23, 24, 25},
-        21: {22, 23, 24, 25},
-        #
-        22: {26, 27, 28, 29},
-        23: {26, 27, 28, 29},
-        24: {26, 27, 28, 29},
-        25: {26, 27, 28, 29},
-        #
-        26: {30, 31, 32, 33},
-        27: {30, 31, 32, 33},
-        28: {30, 31, 32, 33},
-        29: {30, 31, 32, 33},
-        #
-        30: {34},
-        31: {34},
-        32: {34},
-        33: {34},
-        #
-        34: {34},
-    }
+    def connect(i):
+        start = min(
+            {val for val in (1, 5, 9, 13, 17, 18, 22, 26, 30, 34, 35) if val > i}
+        )
+        return {start, start + 1, start + 2, start + 3}
+
+    connections = {vertex: connect(vertex) for vertex in range(35)}
+    #
+    connections[13] = {17}
+    connections[14] = {17}
+    connections[15] = {17}
+    connections[16] = {17}
+    #
+    connections[30] = {34}
+    connections[31] = {34}
+    connections[32] = {34}
+    connections[33] = {34}
+    #
+    connections[34] = {34}
     matrix = am.build_matrix(connections)
     steps, terminal_matrix = am.terminal_matrix(matrix, (34,))
     assert steps == 10
     assert terminal_matrix[34, 0] == 65_536
+    rev_conn = am.reverve_connections(connections)
+    assert am.count_directed_paths(rev_conn, 34) == 65_536
+
 
 if __name__ == "__main__":
     ...

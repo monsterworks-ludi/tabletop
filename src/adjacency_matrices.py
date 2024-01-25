@@ -104,9 +104,9 @@ def weighted_connection_symbolic(
     dest = spaces[row]
     orig = spaces[col]
     if orig not in conn or dest not in conn[orig]:
-        return sp.parsing.parse_expr('0')
+        return sp.parsing.parse_expr("0")
     else:
-        total_weight = sp.parsing.parse_expr('0')
+        total_weight = sp.parsing.parse_expr("0")
         for label in conn[dest][orig]:
             total_weight += weigh(label)
         return total_weight
@@ -253,16 +253,22 @@ def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int, ...], max_ho
 
 
 Pendant = tuple[str, sp.Symbol]
+""" Consists of a label for the edge and a symbol for the incident vertex. """
 Path = list[Pendant]
-
+""" A list of labelled edges. """
 
 def new_pendants_from_path(conn: LabeledConnections, path: Path) -> list[Pendant]:
-    current_space = path[-1][1]
-    neighbors = conn[current_space]
+    """
+
+    :param conn: the labeled edges in the graph
+    :param path: the path constructed up to this point
+    :return: all pendants which do not form a cycle when appended to the path
+    """
+    neighbors = conn[path[-1][1]]
 
     visited_spaces = {pendant[1] for pendant in path}
     new_spaces = [
-        new_space for new_space in neighbors if new_space not in visited_spaces
+        space for space in neighbors if space not in visited_spaces
     ]
     pendantss = [
         [(stem, new_space) for stem in neighbors[new_space]] for new_space in new_spaces
@@ -278,6 +284,16 @@ def find_all_paths(
     dest: Optional[sp.Symbol] = None,
     max_length: Optional[int] = None,
 ) -> Optional[dict[int, list[Path]]]:
+    """
+
+    :param conn: the labelled edges in the graph
+    :param path: the current path
+    :param all_paths: all paths previously determined in the graph that originate with path
+    :param dest: if provided, paths halt once arriving at this node
+    :param max_length: if provided, paths halt once they achieve this length
+    :return: all paths in the graph that originate with path
+    """
+    assert len(path) > 0, "Must have a starting point for all_paths"
     if max_length and len(path) > max_length:
         return all_paths
     if all_paths is None:
@@ -296,6 +312,11 @@ def find_all_paths(
 
 
 def path_string(path: Path) -> str:
+    """
+
+    :param path: a path
+    :return: a nicely formatted string that identifies the path
+    """
     string = ""
     for i, edge in enumerate(path):
         if i == 0:
@@ -304,4 +325,72 @@ def path_string(path: Path) -> str:
             string += f" -({edge[0]})- {edge[1]}"  # type: ignore  # (seems to think edge is a sp.Symbol)
     return string
 
-# todo: path counting algorithm using network flow
+
+def reverve_connections(conn: Connections):
+    """
+
+    :param conn: connections, organized by originating edge
+    :return: connections, organized by destination edge
+    """
+    rev_conn = {}
+    for row in conn:
+        edges = {col for col in conn if row in conn[col]}
+        rev_conn[row] = edges
+    return rev_conn
+
+
+def count_directed_paths(
+    rev_conn: Connections,
+    to_vert: int,
+    from_vert: int = 0,
+    counts: Optional[dict[int, int]] = None,
+):
+    """
+
+    :param rev_conn: a reverse connection
+    :param to_vert: ending vertex for the path
+    :param from_vert: starting vertex for the path
+    :param counts: the number of paths starting at from_vert and ending at the key, useful for batch searches
+    :return: the number of paths (from_vert ~ ~ ~ to_vert)
+    """
+    if counts is None:
+        # initial call, no global count register
+        counts = defaultdict(lambda: -1)
+        counts[from_vert] = 1
+    if not counts[to_vert] == -1:
+        # we have computed this value already, return it
+        count = counts[to_vert]
+        return count
+
+    # we have not computed this value yet
+    count = 0
+    visited_verts = {to_vert}  # prevents infinite recursion if graph has self-loops
+    while rev_conn[to_vert] - visited_verts:
+        # there are some incoming edges we have not tallied yet
+        vert = list(rev_conn[to_vert] - visited_verts).pop()
+        # count the number of paths coming from that edge
+        incoming_paths = count_directed_paths(rev_conn, vert, from_vert, counts)
+        # and increase the count
+        count += incoming_paths
+        # indicate that we have tallied that edge
+        visited_verts.add(vert)
+    counts[to_vert] = count
+    return count
+
+
+def count_all_directed_paths(rev_conn: Connections, from_vert: int = 0):
+    """
+
+    :param rev_conn: a reverse connection
+    :param from_vert: starting vertex for the path
+    :return: key is the ending vertex and value is the number of paths (from_vert ~ ~ ~ key)
+    """
+    counts = defaultdict(lambda: -1)
+    counts[from_vert] = 1
+    for to_vertex in rev_conn:
+        count_directed_paths(rev_conn, to_vertex, from_vert, counts)
+    return dict(counts)
+
+
+if __name__ == "__main__":
+    ...
