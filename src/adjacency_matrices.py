@@ -106,7 +106,7 @@ def weighted_connection_symbolic(
     if orig not in conn or dest not in conn[orig]:
         return sp.parsing.parse_expr('0')
     else:
-        total_weight =sp.parsing.parse_expr('0')
+        total_weight = sp.parsing.parse_expr('0')
         for label in conn[dest][orig]:
             total_weight += weigh(label)
         return total_weight
@@ -216,7 +216,7 @@ def centers(spaces: Symbols, matrix: sp.Matrix) -> tuple[int, set[sp.Symbol]]:
     return most_neighbors, neighbors[most_neighbors]
 
 
-def terminated(matrix: sp.Matrix, absorbing_states: tuple[int]):
+def terminated(matrix: sp.Matrix, absorbing_states: tuple[int, ...]):
     """
 
     :param matrix: an adjacency matrix
@@ -232,7 +232,7 @@ def terminated(matrix: sp.Matrix, absorbing_states: tuple[int]):
     return True
 
 
-def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int], max_hops=100):
+def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int, ...], max_hops=100):
     """
 
     :param matrix: an adjacency matrix
@@ -303,3 +303,5 @@ def path_string(path: Path) -> str:
         else:
             string += f" -({edge[0]})- {edge[1]}"  # type: ignore  # (seems to think edge is a sp.Symbol)
     return string
+
+# todo: path counting algorithm using network flow
