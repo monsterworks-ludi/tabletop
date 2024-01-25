@@ -17,7 +17,7 @@ def test_pandemic():
             else 0
         ),
     )
-    steps, terminal_matrix = am.terminal_matrix(adjacency, [16])
+    steps, terminal_matrix = am.terminal_matrix(adjacency, (16,))
     assert steps == 16
     assert terminal_matrix[16, 0] == 256
 
@@ -59,7 +59,7 @@ def test_gloomhaven():
         26: {26},
     }
     matrix = am.build_matrix(connections)
-    steps, terminal_matrix = am.terminal_matrix(matrix, [11, 13, 15, 26])
+    steps, terminal_matrix = am.terminal_matrix(matrix, (11, 13, 15, 26))
     assert steps == 10
     assert terminal_matrix[11, 0] == 5
     assert terminal_matrix[13, 0] == 5
@@ -117,6 +117,9 @@ def test_hoplomachus():
         34: {34},
     }
     matrix = am.build_matrix(connections)
-    steps, terminal_matrix = am.terminal_matrix(matrix, [34])
+    steps, terminal_matrix = am.terminal_matrix(matrix, (34,))
     assert steps == 10
     assert terminal_matrix[34, 0] == 65_536
+
+if __name__ == "__main__":
+    ...
