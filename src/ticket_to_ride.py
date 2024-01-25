@@ -34,85 +34,40 @@ COLORS = (
 POINTS = {1: 1, 2: 2, 3: 4, 4: 7, 5: 10, 6: 15}
 
 
-def weight_by_adjacency(_string):
-    return 1
+def weight_by_adjacency(_string: str) -> sp.Expr:
+    return sp.parsing.sympy_parser.parse_expr('1')
 
 
-def weight_by_cost(string):
+def weight_by_cost(string: str) -> sp.Expr:
     return x ** len(string)
 
 
-def weight_by_points(string):
+def weight_by_points(string: str) -> sp.Expr:
     return v ** POINTS[len(string)]
 
 
-def weight_by_cost_and_points(string):
+def weight_by_cost_and_points(string: str) -> sp.Expr:
     return weight_by_cost(string) * weight_by_points(string)
 
 
-def weight_by_card_color(string):
-    weight = 1
+def weight_by_card_color(string: str) -> sp.Expr:
+    weight = sp.parsing.sympy_parser.parse_expr('1')
     for char in string:
         weight *= sp.parsing.sympy_parser.parse_expr(char)
     return weight
 
 
-def weight_by_card_color_and_points(string):
+def weight_by_card_color_and_points(string: str) -> sp.Expr:
     weight = weight_by_points(string)
     for char in string:
         weight *= sp.parsing.sympy_parser.parse_expr(char)
     return weight
 
 
-def connection_weight(matrix, origination, destination):
-    return matrix[CITIES.index(destination), CITIES.index(origination)]
+def connection_weight(matrix: sp.Matrix, dest: sp.Symbol, orig: sp.Symbol) -> sp.Expr:
+    return matrix[CITIES.index(dest), CITIES.index(orig)]
 
 
-# order should match that of original dictionary (so output will be consistent)
-def new_pendants_from_path(connections, path):
-    current_city = path[-1][1]
-    neighbors = connections[current_city]
-
-    visited_cities = {pendant[1] for pendant in path}
-    new_cities = [new_city for new_city in neighbors if new_city not in visited_cities]
-    pendantss = [[(stem, new_city) for stem in neighbors[new_city]]
-                 for new_city in new_cities]
-    pendants = [pendant for pendants in pendantss for pendant in pendants]
-    return pendants
-
-
-def find_all_paths(
-    connections, path, all_paths=None, destination=None, max_length=None
-):
-    ic.enable()
-    if max_length and len(path) > max_length:
-        return all_paths
-    if all_paths is None:
-        all_paths = defaultdict(lambda: [])
-    path = path.copy()
-    new_pendants = new_pendants_from_path(connections, path)
-    if len(new_pendants) == 0 and destination is None:
-        all_paths[len(path) - 1].append(path)
-    for pendant in new_pendants:
-        new_path = path + [pendant]
-        if pendant[1] == destination:
-            all_paths[len(new_path) - 1].append(new_path)
-        else:
-            find_all_paths(connections, new_path, all_paths, destination, max_length)
-    ic.disable()
-    return all_paths
-
-def path_string(path):
-    string = ""
-    for i, edge in enumerate(path):
-        if i == 0:
-            string += f"{edge[1]}"
-        else:
-            string += f" -({edge[0]})- {edge[1]}"
-    return string
-
-
-# establish symbols for each space
 NE_CITIES = (
     montreal,
     boston,
@@ -131,7 +86,7 @@ NE_CITIES = (
 """
 )
 
-NE_CONNECTIONS: dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]] = {
+NE_CONNECTIONS: am.LabeledConnections = {
     montreal: {toronto: ("xx",), new_york: ("bbb",)},
     toronto: {montreal: ("xx",), pittsburgh: ("xx",)},
     pittsburgh: {toronto: ("xx",), new_york: ("ww", "gg")},
@@ -250,7 +205,7 @@ CITIES = (
 """
 )
 
-CONNECTIONS: dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]] = {
+CONNECTIONS: am.LabeledConnections = {
     vancouver: {calgary: ("xxx",), seattle: ("x", "x")},
     calgary: {
         winnipeg: ("wwwwww",),

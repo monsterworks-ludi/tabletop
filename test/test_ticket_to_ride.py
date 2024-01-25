@@ -1,6 +1,8 @@
 import sympy as sp
 import itertools as it
 
+from icecream import ic  # type: ignore
+
 import adjacency_matrices as am
 import ticket_to_ride as ttr
 from ticket_to_ride import x, v, b, g, p, r, t, w, y
@@ -139,7 +141,7 @@ class TestSimple:
 
     @staticmethod
     def test_paths():
-        all_paths = ttr.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)])
+        all_paths = am.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)])
         # Figure 4.11, p. 80
         assert all_paths == {
             2: [
@@ -224,7 +226,7 @@ class TestSimple:
 
     @staticmethod
     def test_paths_to_toronto():
-        all_paths = ttr.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)], destination=ttr.toronto)
+        all_paths = am.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)], dest=ttr.toronto)
         assert all_paths == {
             1:
                 [[('', ttr.montreal), ('xx', ttr.toronto)]],
@@ -243,7 +245,7 @@ class TestFull:
         for power in it.count(1):
             cost_matrix *= ttr.COST_MATRIX
             montreal_los_angeles_cost = ttr.connection_weight(
-                cost_matrix, ttr.montreal, ttr.los_angeles
+                cost_matrix, ttr.los_angeles, ttr.montreal
             )
             if not montreal_los_angeles_cost == 0 * x:
                 break
@@ -262,7 +264,7 @@ class TestFull:
         for power in it.count(1):
             points_matrix *= ttr.POINTS_MATRIX
             montreal_los_angeles_points = ttr.connection_weight(
-                points_matrix, ttr.montreal, ttr.los_angeles
+                points_matrix, ttr.los_angeles, ttr.montreal
             )
             if not montreal_los_angeles_points == 0:
                 break
@@ -289,7 +291,7 @@ class TestFull:
         for power in it.count(1):
             combined_matrix *= ttr.COMBINED_MATRIX
             montreal_los_angeles_combined = ttr.connection_weight(
-                combined_matrix, ttr.montreal, ttr.los_angeles
+                combined_matrix, ttr.los_angeles, ttr.montreal
             )
             if not montreal_los_angeles_combined == 0 * x * v:
                 break
@@ -317,7 +319,7 @@ class TestFull:
         for power in it.count(1):
             color_matrix *= ttr.COLOR_POINTS_MATRIX
             montreal_los_angeles_colors = ttr.connection_weight(
-                color_matrix, ttr.montreal, ttr.los_angeles
+                color_matrix, ttr.los_angeles, ttr.montreal
             )
             if not montreal_los_angeles_colors == 0 * x:
                 break
@@ -334,31 +336,33 @@ class TestFull:
     def test_route_counts():
         seven_hop_matrix = ttr.ADJACENCY_MATRIX**7
         montreal_los_angeles_seven_hops = ttr.connection_weight(
-            seven_hop_matrix, ttr.montreal, ttr.los_angeles
+            seven_hop_matrix, ttr.los_angeles, ttr.montreal
         )
         # Comment, p. 78
         assert montreal_los_angeles_seven_hops == 356
         eight_hop_matrix = seven_hop_matrix * ttr.ADJACENCY_MATRIX
         montreal_los_angeles_eight_hops = ttr.connection_weight(
-            eight_hop_matrix, ttr.montreal, ttr.los_angeles
+            eight_hop_matrix, ttr.los_angeles, ttr.montreal
         )
         # Comment, p. 78
         assert montreal_los_angeles_eight_hops == 3763
 
     @staticmethod
     def test_six_hop_route():
+        ic.enable()
         montreal_los_angeles_route = 0 * x
         route_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
             route_matrix *= ttr.COLOR_CITY_POINTS_MATRIX
             montreal_los_angeles_route = ttr.connection_weight(
-                route_matrix, ttr.montreal, ttr.los_angeles
+                route_matrix, ttr.los_angeles, ttr.montreal
             )
             if not montreal_los_angeles_route == 0 * x:
                 break
         # Comment on p. 78
         assert power == 6
+        print(montreal_los_angeles_route.expand().as_expr().coeff(v, 55))
         assert (
             montreal_los_angeles_route.expand()
             .as_expr()
@@ -378,13 +382,14 @@ class TestFull:
                 * ttr.los_angeles
             )
         )
+        ic.disable()
 
     # takes about 108 seconds on my computer
     @staticmethod
     def test_seven_hop_route():
         points_matrix = ttr.CITY_POINTS_MATRIX**7
         montreal_los_angeles_route_coeffs = sp.Poly(
-            ttr.connection_weight(points_matrix, ttr.montreal, ttr.los_angeles), v
+            ttr.connection_weight(points_matrix, ttr.los_angeles, ttr.montreal), v
         ).all_coeffs()
         # Comment, p. 78
         assert len(montreal_los_angeles_route_coeffs) == 74
