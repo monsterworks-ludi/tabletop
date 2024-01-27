@@ -1,6 +1,14 @@
 import random
 
-def hit_on_a(target, *, critical=None):
+from typing import Optional
+
+def hit_on_a(target: int, *, critical:Optional[int]=None) -> int:
+    """
+
+    :param target: rolls at least target will hit
+    :param critical: rolls at least critical will gain a bonus roll
+    :return: the number of hits obtained from the roll
+    """
     hits = 0
     roll = random.randrange(1, 7)
     if roll >= target:

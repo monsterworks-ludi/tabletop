@@ -3,9 +3,7 @@ import itertools as it
 from collections import defaultdict
 
 from typing import Callable, Optional
-from icecream import ic  # type: ignore
 
-ic.disable()
 
 Connections = dict[int, set[int]]
 """Key is vertex index.
@@ -81,7 +79,11 @@ LabeledConnections = dict[sp.Symbol, dict[sp.Symbol, tuple[str, ...]]]
 """Key is the symbol of a vertex.
 Value is a dictionary
 whose subkeys are the symbols associated with adjacent vertices
-and whose subvalues are data encoded as a string."""
+and whose subvalues are data encoded as a string.
+
+Note that the ordering of the tuple does not matter, but we
+need to allow for multiple edges with the same label. May consider
+using the multiset package."""
 
 
 def weighted_connection_symbolic(
@@ -165,8 +167,8 @@ def vertex_degrees_multi(conn: LabeledConnections) -> dict[sp.Symbol, int]:
 def submatrix_symbolic(
     spaces: Symbols,
     matrix: sp.Matrix,
-    dests: list[sp.Symbol],
-    origs: list[sp.Symbol],
+    dests: tuple[sp.Symbol, ...],
+    origs: tuple[sp.Symbol, ...],
 ) -> sp.Matrix:
     """
     Generates a submatrix based on symbols
@@ -216,7 +218,7 @@ def centers(spaces: Symbols, matrix: sp.Matrix) -> tuple[int, set[sp.Symbol]]:
     return most_neighbors, neighbors[most_neighbors]
 
 
-def terminated(matrix: sp.Matrix, absorbing_states: tuple[int, ...]):
+def terminated(matrix: sp.Matrix, absorbing_states: set[int]) -> bool:
     """
 
     :param matrix: an adjacency matrix
@@ -232,7 +234,7 @@ def terminated(matrix: sp.Matrix, absorbing_states: tuple[int, ...]):
     return True
 
 
-def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int, ...], max_hops=100):
+def terminal_matrix(matrix: sp.Matrix, absorbing_states: set[int], max_hops=100) -> tuple[int, sp.Matrix]:
     """
 
     :param matrix: an adjacency matrix
@@ -254,10 +256,10 @@ def terminal_matrix(matrix: sp.Matrix, absorbing_states: tuple[int, ...], max_ho
 
 Pendant = tuple[str, sp.Symbol]
 """ Consists of a label for the edge and a symbol for the incident vertex. """
-Path = list[Pendant]
+Path = tuple[Pendant, ...]
 """ A list of labelled edges. """
 
-def new_pendants_from_path(conn: LabeledConnections, path: Path) -> list[Pendant]:
+def new_pendants_from_path(conn: LabeledConnections, path: Path) -> tuple[Pendant, ...]:
     """
 
     :param conn: the labeled edges in the graph
@@ -273,17 +275,17 @@ def new_pendants_from_path(conn: LabeledConnections, path: Path) -> list[Pendant
     pendantss = [
         [(stem, new_space) for stem in neighbors[new_space]] for new_space in new_spaces
     ]
-    pendants = [pendant for pendants in pendantss for pendant in pendants]
-    return pendants
+    pendants = (pendant for pendants in pendantss for pendant in pendants)
+    return tuple(pendants)
 
 
 def find_all_paths(
     conn: LabeledConnections,
     path: Path,
-    all_paths: Optional[dict[int, list[Path]]] = None,
+    all_paths: Optional[dict[int, set[Path]]] = None,
     dest: Optional[sp.Symbol] = None,
     max_length: Optional[int] = None,
-) -> Optional[dict[int, list[Path]]]:
+) -> Optional[dict[int, set[Path]]]:
     """
 
     :param conn: the labelled edges in the graph
@@ -297,15 +299,14 @@ def find_all_paths(
     if max_length and len(path) > max_length:
         return all_paths
     if all_paths is None:
-        all_paths = defaultdict(list)
-    path = path.copy()
+        all_paths = defaultdict(set)
     new_pendants = new_pendants_from_path(conn, path)
     if len(new_pendants) == 0 and dest is None:
-        all_paths[len(path) - 1].append(path)
+        all_paths[len(path) - 1].add(path)
     for pendant in new_pendants:
-        new_path = path + [pendant]
+        new_path = path + (pendant,)
         if pendant[1] == dest:
-            all_paths[len(new_path) - 1].append(new_path)
+            all_paths[len(new_path) - 1].add(new_path)
         else:
             find_all_paths(conn, new_path, all_paths, dest, max_length)
     return all_paths
@@ -326,7 +327,7 @@ def path_string(path: Path) -> str:
     return string
 
 
-def reverve_connections(conn: Connections):
+def reverse_connections(conn: Connections) -> Connections:
     """
 
     :param conn: connections, organized by originating edge
@@ -344,7 +345,7 @@ def count_directed_paths(
     to_vert: int,
     from_vert: int = 0,
     counts: Optional[dict[int, int]] = None,
-):
+) -> int:
     """
 
     :param rev_conn: a reverse connection
@@ -378,7 +379,7 @@ def count_directed_paths(
     return count
 
 
-def count_all_directed_paths(rev_conn: Connections, from_vert: int = 0):
+def count_all_directed_paths(rev_conn: Connections, from_vert: int = 0) -> dict[int, int]:
     """
 
     :param rev_conn: a reverse connection

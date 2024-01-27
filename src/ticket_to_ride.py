@@ -1,14 +1,8 @@
 import sympy as sp
-from collections import defaultdict
-
-from icecream import ic  # type: ignore
 
 import adjacency_matrices as am
 
-ic.disable()
-
-x = sp.Symbol("x")
-v = sp.Symbol("v")
+x, v = sp.symbols("x, v")
 COLORS = (
     b,
     k,
@@ -35,22 +29,47 @@ POINTS = {1: 1, 2: 2, 3: 4, 4: 7, 5: 10, 6: 15}
 
 
 def weight_by_adjacency(_string: str) -> sp.Expr:
+    """
+
+    :param _string: the label of an edge
+    :return: 1 for any edge as the two vertices are "adjacent"
+    """
     return sp.parsing.sympy_parser.parse_expr('1')
 
 
 def weight_by_cost(string: str) -> sp.Expr:
+    """
+
+    :param string: the label of an edge
+    :return: the cost to claim that edge
+    """
     return x ** len(string)
 
 
 def weight_by_points(string: str) -> sp.Expr:
+    """
+
+    :param string: the label of an edge
+    :return: the victory points earned by claiming that edge
+    """
     return v ** POINTS[len(string)]
 
 
 def weight_by_cost_and_points(string: str) -> sp.Expr:
+    """
+
+    :param string: the label of an edge
+    :return: the cost to claim that edge times the victory points earned by claiming that edge
+    """
     return weight_by_cost(string) * weight_by_points(string)
 
 
 def weight_by_card_color(string: str) -> sp.Expr:
+    """
+
+    :param string: the label of an edge
+    :return: the cost to claim that edge using the card color as its base
+    """
     weight = sp.parsing.sympy_parser.parse_expr('1')
     for char in string:
         weight *= sp.parsing.sympy_parser.parse_expr(char)
@@ -58,6 +77,12 @@ def weight_by_card_color(string: str) -> sp.Expr:
 
 
 def weight_by_card_color_and_points(string: str) -> sp.Expr:
+    """
+
+    :param string: the label of an edge
+    :return: the cost to claim that edge using the card color as its base
+        and the victory points earned from claiming the edge
+    """
     weight = weight_by_points(string)
     for char in string:
         weight *= sp.parsing.sympy_parser.parse_expr(char)
@@ -65,6 +90,13 @@ def weight_by_card_color_and_points(string: str) -> sp.Expr:
 
 
 def connection_weight(matrix: sp.Matrix, dest: sp.Symbol, orig: sp.Symbol) -> sp.Expr:
+    """
+
+    :param matrix: a symbolic adjacency matrix
+    :param dest: the symbol associated with the destination
+    :param orig: the symbol associated with the orignation
+    :return: the weight of that edge
+    """
     return matrix[CITIES.index(dest), CITIES.index(orig)]
 
 

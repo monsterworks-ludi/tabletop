@@ -10,12 +10,12 @@ from ticket_to_ride import x, v, b, g, p, r, t, w, y
 
 class TestSimple:
     @staticmethod
-    def test_costs():
+    def test_costs() -> None:
         south_cost_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COST_MATRIX,
-            [ttr.pittsburgh, ttr.washington],
-            [ttr.toronto, ttr.new_york],
+            (ttr.pittsburgh, ttr.washington),
+            (ttr.toronto, ttr.new_york),
         )
         # Fig 4.10a, p. 75
         assert south_cost_matrix.equals(
@@ -24,8 +24,8 @@ class TestSimple:
         north_cost_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COST_MATRIX,
-            [ttr.toronto, ttr.new_york],
-            [ttr.montreal, ttr.boston],
+            (ttr.toronto, ttr.new_york),
+            (ttr.montreal, ttr.boston),
         )
         # Fig 4.10b, p. 75
         assert north_cost_matrix.equals(sp.Matrix([[x**2, 0], [x**3, 2 * x**2]]))
@@ -35,12 +35,12 @@ class TestSimple:
         )
 
     @staticmethod
-    def test_points():
+    def test_points() -> None:
         south_points_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_POINTS_MATRIX,
-            [ttr.pittsburgh, ttr.washington],
-            [ttr.toronto, ttr.new_york],
+            (ttr.pittsburgh, ttr.washington),
+            (ttr.toronto, ttr.new_york),
         )
         # Example, p. 76
         assert south_points_matrix.equals(
@@ -49,8 +49,8 @@ class TestSimple:
         north_points_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_POINTS_MATRIX,
-            [ttr.toronto, ttr.new_york],
-            [ttr.montreal, ttr.boston],
+            (ttr.toronto, ttr.new_york),
+            (ttr.montreal, ttr.boston),
         )
         # Example, p. 76
         assert north_points_matrix.equals(
@@ -62,12 +62,12 @@ class TestSimple:
         )
 
     @staticmethod
-    def test_combined():
+    def test_combined() -> None:
         south_combined_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COMBINED_MATRIX,
-            [ttr.pittsburgh, ttr.washington],
-            [ttr.toronto, ttr.new_york],
+            (ttr.pittsburgh, ttr.washington),
+            (ttr.toronto, ttr.new_york),
         )
         # Example, p. 77
         assert south_combined_matrix.equals(
@@ -78,8 +78,8 @@ class TestSimple:
         north_combined_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COMBINED_MATRIX,
-            [ttr.toronto, ttr.new_york],
-            [ttr.montreal, ttr.boston],
+            (ttr.toronto, ttr.new_york),
+            (ttr.montreal, ttr.boston),
         )
         # Example, p. 77
         assert north_combined_matrix.equals(
@@ -96,12 +96,12 @@ class TestSimple:
         )
 
     @staticmethod
-    def test_color():
+    def test_color() -> None:
         south_color_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COLOR_MATRIX,
-            [ttr.pittsburgh, ttr.washington],
-            [ttr.toronto, ttr.new_york],
+            (ttr.pittsburgh, ttr.washington),
+            (ttr.toronto, ttr.new_york),
         )
         # Example, p. 78
         assert south_color_matrix.equals(
@@ -110,8 +110,8 @@ class TestSimple:
         north_color_matrix = am.submatrix_symbolic(
             ttr.NE_CITIES,
             ttr.NE_COLOR_MATRIX,
-            [ttr.toronto, ttr.new_york],
-            [ttr.montreal, ttr.boston],
+            (ttr.toronto, ttr.new_york),
+            (ttr.montreal, ttr.boston),
         )
         # Example, p. 78
         assert north_color_matrix.equals(
@@ -140,105 +140,117 @@ class TestSimple:
         )
 
     @staticmethod
-    def test_paths():
-        all_paths = am.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)])
+    def test_paths() -> None:
+        all_paths = am.find_all_paths(ttr.NE_CONNECTIONS, (("", ttr.montreal),))
         # Figure 4.11, p. 80
         assert all_paths == {
-            2: [
-                [("", ttr.montreal), ("bbb", ttr.new_york), ("rr", ttr.boston)],
-                [("", ttr.montreal), ("bbb", ttr.new_york), ("yy", ttr.boston)],
-                [("", ttr.montreal), ("bbb", ttr.new_york), ("tt", ttr.washington)],
-                [("", ttr.montreal), ("bbb", ttr.new_york), ("bb", ttr.washington)],
-            ],
-            3: [
-                [
+            2: {
+                (("", ttr.montreal), ("bbb", ttr.new_york), ("rr", ttr.boston)),
+                (("", ttr.montreal), ("bbb", ttr.new_york), ("yy", ttr.boston)),
+                (("", ttr.montreal), ("bbb", ttr.new_york), ("tt", ttr.washington)),
+                (("", ttr.montreal), ("bbb", ttr.new_york), ("bb", ttr.washington)),
+            },
+            3: {
+                (
                     ("", ttr.montreal),
                     ("bbb", ttr.new_york),
                     ("gg", ttr.pittsburgh),
                     ("xx", ttr.toronto),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("bbb", ttr.new_york),
                     ("ww", ttr.pittsburgh),
                     ("xx", ttr.toronto),
-                ],
-            ],
-            4: [
-                [
+                ),
+            },
+            4: {
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("ww", ttr.new_york),
                     ("rr", ttr.boston),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("ww", ttr.new_york),
                     ("yy", ttr.boston),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("ww", ttr.new_york),
                     ("tt", ttr.washington),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("ww", ttr.new_york),
                     ("bb", ttr.washington),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("gg", ttr.new_york),
                     ("rr", ttr.boston),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("gg", ttr.new_york),
                     ("yy", ttr.boston),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("gg", ttr.new_york),
                     ("tt", ttr.washington),
-                ],
-                [
+                ),
+                (
                     ("", ttr.montreal),
                     ("xx", ttr.toronto),
                     ("xx", ttr.pittsburgh),
                     ("gg", ttr.new_york),
                     ("bb", ttr.washington),
-                ],
-            ],
+                ),
+            },
         }
 
     @staticmethod
-    def test_paths_to_toronto():
-        all_paths = am.find_all_paths(ttr.NE_CONNECTIONS, [("", ttr.montreal)], dest=ttr.toronto)
+    def test_paths_to_toronto() -> None:
+        all_paths = am.find_all_paths(
+            ttr.NE_CONNECTIONS, (("", ttr.montreal),), dest=ttr.toronto
+        )
         assert all_paths == {
-            1:
-                [[('', ttr.montreal), ('xx', ttr.toronto)]],
-            3:
-                [[('', ttr.montreal), ('bbb', ttr.new_york), ('gg', ttr.pittsburgh), ('xx', ttr.toronto)],
-                 [('', ttr.montreal), ('bbb', ttr.new_york), ('ww', ttr.pittsburgh), ('xx', ttr.toronto)]]
+            1: {(("", ttr.montreal), ("xx", ttr.toronto))},
+            3: {
+                (
+                    ("", ttr.montreal),
+                    ("bbb", ttr.new_york),
+                    ("gg", ttr.pittsburgh),
+                    ("xx", ttr.toronto),
+                ),
+                (
+                    ("", ttr.montreal),
+                    ("bbb", ttr.new_york),
+                    ("ww", ttr.pittsburgh),
+                    ("xx", ttr.toronto),
+                ),
+            },
         }
 
 
 class TestFull:
     @staticmethod
-    def test_ttr_costs():
+    def test_ttr_costs() -> None:
         montreal_los_angeles_cost = 0 * x
         cost_matrix = sp.eye(len(ttr.CITIES))
         power = 0
@@ -257,7 +269,7 @@ class TestFull:
         assert montreal_los_angeles_cost.subs(x, 1) == 23
 
     @staticmethod
-    def test_ttr_points():
+    def test_ttr_points() -> None:
         montreal_los_angeles_points = 0 * v
         points_matrix = sp.eye(len(ttr.CITIES))
         power = 0
@@ -284,7 +296,7 @@ class TestFull:
         assert montreal_los_angeles_points.subs(v, 1) == 23
 
     @staticmethod
-    def test_ttr_combined():
+    def test_ttr_combined() -> None:
         montreal_los_angeles_combined = 0 * x * v
         combined_matrix = sp.eye(len(ttr.CITIES))
         power = 0
@@ -312,7 +324,7 @@ class TestFull:
         assert montreal_los_angeles_combined.subs(v, 1).subs(x, 1) == 23
 
     @staticmethod
-    def test_ttr_colors():
+    def test_ttr_colors() -> None:
         montreal_los_angeles_colors = 0 * x
         color_matrix = sp.eye(len(ttr.CITIES))
         power = 0
@@ -333,7 +345,7 @@ class TestFull:
         )
 
     @staticmethod
-    def test_route_counts():
+    def test_route_counts() -> None:
         seven_hop_matrix = ttr.ADJACENCY_MATRIX**7
         montreal_los_angeles_seven_hops = ttr.connection_weight(
             seven_hop_matrix, ttr.los_angeles, ttr.montreal
@@ -348,7 +360,7 @@ class TestFull:
         assert montreal_los_angeles_eight_hops == 3763
 
     @staticmethod
-    def test_six_hop_route():
+    def test_six_hop_route() -> None:
         ic.enable()
         montreal_los_angeles_route = 0 * x
         route_matrix = sp.eye(len(ttr.CITIES))
@@ -386,7 +398,7 @@ class TestFull:
 
     # takes about 108 seconds on my computer
     @staticmethod
-    def test_seven_hop_route():
+    def test_seven_hop_route() -> None:
         points_matrix = ttr.CITY_POINTS_MATRIX**7
         montreal_los_angeles_route_coeffs = sp.Poly(
             ttr.connection_weight(points_matrix, ttr.los_angeles, ttr.montreal), v
