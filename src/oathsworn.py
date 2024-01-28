@@ -1,205 +1,226 @@
-from itertools import permutations
-from math import factorial
-
-# from pprint import pprint
-
-# card: damage, explosions, number
-deck = {
-    (0, 0, 1),
-    (0, 0, 2),
-    (0, 0, 3),
-    (0, 0, 4),
-    (0, 0, 5),
-    (0, 0, 6),
-    (1, 0, 1),
-    (1, 0, 2),
-    (1, 0, 3),
-    (1, 0, 4),
-    (1, 0, 5),
-    (1, 0, 6),
-    (2, 0, 1),
-    (2, 0, 2),
-    (2, 0, 3),
-    (2, 1, 1),
-    (2, 1, 2),
-    (2, 1, 3),
-}
+import random
+import itertools as it
+from typing import NamedTuple
 
 
-def card_to_key(card):
-    if card[0] == 0:
-        return "0"
-    elif card[0] == 1:
-        return "1"
-    else:  # card[0] == 2
-        if card[1] == 0:
-            return "2"
-        else:  # card[1] == 1
-            return "e"
+class Card(NamedTuple):
+    damage: int
+    exploding: bool = False
+    copy: int = 0
 
 
-def hand_to_key(hand):
-    key = hand["0"] * "0" + hand["1"] * "1" + hand["2"] * "2" + hand["e"] * "e"
-    return key
+def copy_card(damage: int, exploding: bool = False, *, count: int = 1) -> set[Card]:
+    """
+
+    :param damage: the damage done by the card
+    :param exploding: whether the card grants a bonus card draw
+    :param count: the number of cards to be generated
+    :return: a set consisting of count copies of a card with threats
+    """
+    return {Card(damage, exploding, i) for i in range(count)}
 
 
-# debugging information for hand_size = 3
-# damage_by_hand = {
-#     "000": 0,
-#     "001": 0,
-#     "002": 0,
-#     "00e": 0,
-#     "011": 0,
-#     "012": 0,
-#     "01e": 0,
-#     "022": 0,
-#     "02e": 0,
-#     "0ee": 0,
-#     "111": 0,
-#     "112": 0,
-#     "11e": 0,
-#     "122": 0,
-#     "12e": 0,
-#     "1ee": 0,
-#     "222": 0,
-#     "22e": 0,
-#     "2ee": 0,
-#     "eee": 0,
-# }
-#
-# count_by_hand = damage_by_hand.copy()
+Deck = list[Card]
 
 
-def calculate_card_damage(hand_size):
-    shuffles = 0
-    total_damage = 0
-    for shuffle in permutations(deck, hand_size + 3):
-        shuffle = list(shuffle)
-        shuffles += 1
-        draws = hand_size
-        blanks = 0
-        hand_damage = 0
-        card_number = 1
-        while draws > 0:
-            card = shuffle.pop()
-            draws = draws - 1
-            if card_number <= hand_size:
-                card_number += 1
-                if card[0] == 0:
-                    blanks += 1
-                    if blanks >= 2:
-                        break  # stop drawing cards, we have missed
-            hand_damage += card[0]
-            draws += card[1]
-        if not blanks >= 2:
-            total_damage += hand_damage
+def shuffled(deck: Deck) -> Deck:
+    """
 
-    return total_damage / shuffles
+    :param deck: the deck to be shuffled
+    :return: a shuffled deck with the same cards as deck
+    """
+    deck = deck.copy()
+    random.shuffle(deck)
+    return deck
 
 
-sides = {(0, 0, 1), (0, 0, 2), (1, 0, 1), (1, 0, 2), (2, 0, 1), (2, 1, 1)}
-
-
-def quadnomial(blanks, ones, twos, explodes):
-    return factorial(blanks + ones + twos + explodes) / (
-        factorial(blanks) * factorial(ones) * factorial(twos) * factorial(explodes)
+WHITE_DECK: Deck = [
+    card
+    for card in it.chain(
+        copy_card(0, count=6),
+        copy_card(1, count=6),
+        copy_card(2, count=3),
+        copy_card(2, True, count=3),
     )
+]
+
+YELLOW_DECK: Deck = [
+    card
+    for card in it.chain(
+        copy_card(0, count=6),
+        copy_card(2, count=6),
+        copy_card(3, count=3),
+        copy_card(4, True, count=3),
+    )
+]
+
+RED_DECK: Deck = [
+    card
+    for card in it.chain(
+        copy_card(0, count=6),
+        copy_card(3, count=6),
+        copy_card(4, count=3),
+        copy_card(4, True, count=3),
+    )
+]
+
+BLACK_DECK: Deck = [
+    card
+    for card in it.chain(
+        copy_card(0, count=6),
+        copy_card(4, count=6),
+        copy_card(5, count=3),
+        copy_card(5, True, count=3),
+    )
+]
 
 
-def calculate_dice_damage(hand_size):
-    total_damage = 0
-    for blanks in range(2):
-        for ones in range(hand_size - blanks + 1):
-            for twos in range(hand_size - blanks - ones + 1):
-                explodes = hand_size - blanks - ones - twos
-                hand_damage = ones * 1 + twos * 2 + explodes * (2 + 6 / 5)
-                # print(f"{blanks=}, {ones=}, {twos=}, {explodes=}, {hand_damage=}")
-                total_damage += (
-                    quadnomial(blanks, ones, twos, explodes)
-                    * (2 / 6) ** blanks
-                    * (2 / 6) ** ones
-                    * (1 / 6) ** twos
-                    * (1 / 6) ** explodes
-                    * hand_damage
-                )
+def hit_drawing(number_of_cards: int, deck: Deck) -> bool:
+    """
 
-    return total_damage
+    :param number_of_cards: the number of cards drawn
+    :param deck: the deck from which to draw
+    :return: whether the hand scores a hit
+    """
+    blanks = 0
+    for _ in range(number_of_cards):
+        card = deck.pop()
+        if card.damage == 0:
+            blanks += 1
+            if not blanks <= 1:
+                break  # stop drawing cards, attack has missed
+    return blanks <= 1
 
 
-# for n in range(0, 7):
-#     dice_damage = calculate_dice_damage(n)
-#     card_damage = calculate_card_damage(n)
-#     print(f"{n=}, {dice_damage=}, {card_damage=}")
+def damage_drawing(number_in_initial_draw: int, deck: Deck) -> int:
+    """
 
-
-def size(hand):
-    accumulator = 0
-    for card in range(len(hand)):
-        accumulator += hand[card]
-    return accumulator
-
-
-def damage_function(low, hand):
-    return low * hand[1] + (low + 1) * (hand[2] + hand[3])
-
-
-def white_damage(hand):
-    return 1 * hand[1] + 2 * (hand[2] + hand[3])
-
-
-def yellow_damage(hand):
-    return 2 * hand[1] + 3 * (hand[2] + hand[3])
-
-
-def red_damage(hand):
-    return 3 * hand[1] + 4 * (hand[2] + hand[3])
-
-
-def black_damage(hand):
-    return 4 * hand[1] + 5 * (hand[2] + hand[3])
-
-
-# hand_size tracks the *initial* hand size
-def card_damage(deck, hand_size, hand, probability, low, construction=None):
-    if size(hand) == hand_size + hand[3]:
-        probability = float(probability)
-        damage = float(damage_function(low, hand) * probability)
-        # print(f"{hand=}, {probability=:.2}, {damage=:.2}, {construction=}")
-        return damage
-
+    :param number_in_initial_draw: number of cards initially drawn
+    :param deck: the deck from which the cards are to be drawn
+    :return: the damage done by drawing the cards
+    """
+    blanks = 0
     damage = 0
-    for card in range(4):
-        if deck[card] > 0:
-            prob = deck[card] / size(deck)
-            deck[card] -= 1
-            hand[card] += 1
-            if construction is not None:
-                construction.append(card)
-            if size(hand) > hand_size or hand[0] < 2:
-                damage += card_damage(
-                    deck, hand_size, hand, probability * prob, low, construction
-                )
-            else:
-                ...
-                # print(f"{hand=}, {probability=:.2}, damage=MISS, {construction=}")
-            if construction is not None:
-                construction.pop()
-            hand[card] -= 1
-            deck[card] += 1
-
-    return damage
+    cards_drawn = 0
+    draws_remaining = number_in_initial_draw
+    while draws_remaining > 0:
+        card = deck.pop()
+        draws_remaining -= 1
+        cards_drawn += 1
+        if cards_drawn <= number_in_initial_draw and card.damage == 0:
+            blanks += 1
+            if not blanks <= 1:
+                break  # stop drawing cards, attack has missed
+        damage += card.damage
+        if card.exploding:
+            draws_remaining += 1
+    return damage if blanks <= 1 else 0
 
 
-# print(card_damage([6, 6, 3, 3], 2, [0, 0, 0, 0], 1, []))
+class Face(NamedTuple):
+    damage: int
+    exploding: bool = False
+    copy: int = 0
 
-for n in range(2, 11):
-    # dice = calculate_dice_damage(n)
-    white = card_damage([6, 6, 3, 3], n, [0, 0, 0, 0], 1, 1)
-    yellow = card_damage([6, 6, 3, 3], n, [0, 0, 0, 0], 1, 2)
-    red = card_damage([6, 6, 3, 3], n, [0, 0, 0, 0], 1, 3)
-    black = card_damage([6, 6, 3, 3], n, [0, 0, 0, 0], 1, 4)
-    print(
-        f"{n=}, {white=:.3} ({(yellow-white)/n=:.3}), {yellow=:.3} ({(red-yellow)/n=:.3}) {red=:.3} ({(black-red)/n=:.3}) {black=:.3}"
+
+def copy_face(damage: int, exploding: bool = False, *, count: int = 1) -> set[Face]:
+    """
+
+    :param damage: the damage done by the card
+    :param exploding: whether the card grants a bonus card draw
+    :param count: the number of cards to be generated
+    :return: a set consisting of count copies of a card with threats
+    """
+    return {Face(damage, exploding, i) for i in range(count)}
+
+
+Die = tuple[Face, ...]
+
+
+WHITE_DIE: Die = tuple(
+    face
+    for face in it.chain(
+        copy_face(0, count=2),
+        copy_face(1, count=2),
+        copy_face(2),
+        copy_face(2, exploding=True),
     )
-    # print(f"{n=}, card damage = {card_damage([6, 6, 3, 3], n, [0, 0, 0, 0], 1)}")
-    # print(f"{n=}, dice damage = {calculate_dice_damage(n)}")
+)
+
+YELLOW_DIE: Die = tuple(
+    face
+    for face in it.chain(
+        copy_face(0, count=2),
+        copy_face(2, count=2),
+        copy_face(3),
+        copy_face(3, exploding=True),
+    )
+)
+
+RED_DIE: Die = tuple(
+    face
+    for face in it.chain(
+        copy_face(0, count=2),
+        copy_face(3, count=2),
+        copy_face(4),
+        copy_face(4, exploding=True),
+    )
+)
+
+BLACK_DIE: Die = tuple(
+    face
+    for face in it.chain(
+        copy_face(0, count=2),
+        copy_face(4, count=2),
+        copy_face(5),
+        copy_face(5, exploding=True),
+    )
+)
+
+# maybe we should specify the die as well
+def hit_rolling(number_of_rolls: int, die: Die) -> bool:
+    """
+
+    :param number_of_rolls: the number of dice rolled
+    :return: whether the hand scores a hit
+    """
+    blanks = 0
+    for _ in range(number_of_rolls):
+        face = random.choice(die)
+        if face.damage == 0:
+            blanks += 1
+            if not blanks <= 1:
+                break  # stop drawing cards, attack has missed
+    return blanks <= 1
+
+def damage_rolling(number_in_initial_roll: int, die: Die) -> int:
+    """
+
+    :param number_in_initial_roll: number of dice initially roll
+    :param die: the dice which is rolled
+    :return: the damage done by rolling the dice
+    """
+    blanks = 0
+    damage = 0
+    explosions = 0
+    dice_rolled = 0
+    rolls_remaining = number_in_initial_roll
+    while rolls_remaining > 0:
+        face: Face = random.choice(die)
+        dice_rolled += 1
+        rolls_remaining -= 1
+        if dice_rolled <= number_in_initial_roll and face.damage == 0:
+            blanks += 1
+            if not blanks <= 1:
+                break
+        damage += face.damage
+        if face.exploding:
+            rolls_remaining += 1
+            explosions += 1
+            if explosions > 100_000:
+                raise RuntimeError("YIKES! More than 100000 explosions!")
+    return damage if blanks <= 1 else 0
+
+
+if __name__ == "__main__":
+    ...
