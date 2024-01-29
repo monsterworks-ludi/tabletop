@@ -80,13 +80,13 @@ class TestOathsworn:
         k = 9:
             1 hr 13 min = 4380000 ms
         k = 10:
-            12 hr?
+            11 hr 29 min = 41340000
         """
         trials = 0
         hits = 0
         for hand in it.permutations(os.WHITE_DECK, k):
             trials += 1
-            if os.hit_drawing(list(hand)):
+            if os.hit_drawing(k, list(hand)):
                 hits += 1
         # Table 5.3, p. 109
         assert (
@@ -154,6 +154,20 @@ class TestOathsworn:
         0.47,
     )
 
+    Expected_Big_White_Card_Damage = (
+        0,
+        1.20,
+        2.39,
+        3.18,
+        3.52,
+        3.49,
+        3.21,
+        2.80,
+        2.34,
+        1.88,
+        1.47
+    )
+
     Expected_White_Dice_Damage = (
         0,
         6 / 5,
@@ -207,13 +221,13 @@ class TestOathsworn:
         """
         trials = 0
         damage = 0
-        max_exploding_cards = 3
+        max_exploding_cards = 3  # should get this number by counting the exploding cards
         for shuffle in it.permutations(os.WHITE_DECK, k + max_exploding_cards):
             trials += 1
             damage += os.damage_drawing(k, list(shuffle))
         print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
-        assert abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 0.05
+        assert abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 10**-15
 
     @staticmethod
     @pytest.mark.parametrize("trials, k", [(10_000_000, k) for k in range(11)])
@@ -221,7 +235,7 @@ class TestOathsworn:
         seed = set_seed
         damage = 0
         for _ in range(trials):
-            deck = os.shuffled(os.WHITE_DECK)
+            deck = os.shuffled(os.WHITE_DECK)  # don't need to shuffle the whole deck
             damage += os.damage_drawing(k, deck)
         # Table 5.4, p. 110
         assert (
@@ -229,20 +243,79 @@ class TestOathsworn:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_big_white_deck_damage_exhaustive(k: int):
+        """
+
+        Running Times
+        k = 0:
+            ?
+        k = 1:
+            ?
+        k = 2:
+            ?
+        k = 3:
+            ?
+        k = 4:
+            ?
+        k = 5:
+            ?
+        k = 6:
+            ?
+        k = 7:
+            ?
+        k = 8:
+            ?
+        k = 9:
+            ?
+        k = 10:
+            ?
+
+        :param k:
+        :return:
+        """
+        trials = 0
+        damage = 0
+        max_exploding_cards = 15  # should get this number by counting the exploding cards
+        for shuffle in it.permutations(os.BIG_WHITE_DECK, k + max_exploding_cards):
+            trials += 1
+            damage += os.damage_drawing(k, list(shuffle))
+        print(f"{k}, {damage}, {trials}")
+        # Table 5.4, p. 110
+        assert abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k]) < 10**-15
+
+    @staticmethod
+    @pytest.mark.parametrize("trials, k", [(10_000_000, k) for k in range(11)])
+    def test_big_white_deck_damage_monte_carlo(trials: int, k: int):
+        seed = set_seed
+        damage = 0
+        for _ in range(trials):
+            deck = os.shuffled(os.BIG_WHITE_DECK)  # don't need to shuffle the whole deck
+            damage += os.damage_drawing(k, deck)
+        # Table 5.4, p. 110
+        assert (
+            abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k]) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
+
+    @staticmethod
     @pytest.mark.parametrize("n", range(11))
     def test_white_dice_damage_formula(n: int) -> None:
         damage = 0.0
-        for blanks, ones, twos in it.product(
-            range(2), range(n + 1), range(n + 1)
-        ):
+        for blanks, ones, twos in it.product(range(2), range(n + 1), range(n + 1)):
             explosions = n - (blanks + ones + twos)
             damage += (
                 (0 * blanks + 1 * ones + 2 * twos + (2 + 6 / 5) * explosions)
-                * mult((blanks, ones, twos, explosions))  # maybe I should use packing to make this easier to read
-                * (2/6)**blanks * (2/6)**ones * (1/6)**twos * (1/6)**explosions
+                * mult(
+                    (blanks, ones, twos, explosions)
+                )  # maybe I should use packing to make this easier to read
+                * (2 / 6) ** blanks
+                * (2 / 6) ** ones
+                * (1 / 6) ** twos
+                * (1 / 6) ** explosions
             )
         # Table 5.4, p. 110
         assert (
+            # should this be a relative error?
             abs(damage - TestOathsworn.Expected_White_Dice_Damage[n])
             < 10**-14
             # tolerance of 10**-15 doesn't work with n = 8
@@ -267,6 +340,7 @@ class TestOathsworn:
             abs(damage / trials - TestOathsworn.Expected_White_Dice_Damage[n]) < 0.005
         ), f"Bad Seed: {seed} and Trials: {trials}"
         return
+
 
 if __name__ == "__main__":
     ...

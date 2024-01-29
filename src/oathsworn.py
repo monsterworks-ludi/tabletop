@@ -21,7 +21,7 @@ def copy_card(damage: int, exploding: bool = False, *, count: int = 1) -> set[Ca
 
 
 Deck = list[Card]
-
+""" Decks are lists, so they can be shuffled. """
 
 def shuffled(deck: Deck) -> Deck:
     """
@@ -41,6 +41,16 @@ WHITE_DECK: Deck = [
         copy_card(1, count=6),
         copy_card(2, count=3),
         copy_card(2, True, count=3),
+    )
+]
+
+BIG_WHITE_DECK: Deck = [
+    card
+    for card in it.chain(
+        copy_card(0, count=30),
+        copy_card(1, count=30),
+        copy_card(2, count=15),
+        copy_card(2, True, count=15),
     )
 ]
 
@@ -177,6 +187,7 @@ BLACK_DIE: Die = tuple(
     )
 )
 
+
 # maybe we should specify the die as well
 def hit_rolling(number_of_rolls: int, die: Die) -> bool:
     """
@@ -192,6 +203,7 @@ def hit_rolling(number_of_rolls: int, die: Die) -> bool:
             if not blanks <= 1:
                 break  # stop drawing cards, attack has missed
     return blanks <= 1
+
 
 def damage_rolling(number_in_initial_roll: int, die: Die) -> int:
     """
