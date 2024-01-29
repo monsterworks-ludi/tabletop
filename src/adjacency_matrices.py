@@ -106,9 +106,9 @@ def weighted_connection_symbolic(
     dest = spaces[row]
     orig = spaces[col]
     if orig not in conn or dest not in conn[orig]:
-        return sp.parsing.parse_expr("0")
+        return sp.Integer(0)
     else:
-        total_weight = sp.parsing.parse_expr("0")
+        total_weight = sp.Integer(0)
         for label in conn[dest][orig]:
             total_weight += weigh(label)
         return total_weight

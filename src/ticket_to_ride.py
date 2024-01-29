@@ -34,7 +34,7 @@ def weight_by_adjacency(_string: str) -> sp.Expr:
     :param _string: the label of an edge
     :return: 1 for any edge as the two vertices are "adjacent"
     """
-    return sp.parsing.sympy_parser.parse_expr('1')
+    return sp.Integer(1)
 
 
 def weight_by_cost(string: str) -> sp.Expr:
