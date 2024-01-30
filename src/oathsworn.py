@@ -1,5 +1,8 @@
 import random
 import itertools as it
+import sympy as sp
+import time as time
+
 from typing import NamedTuple
 
 
@@ -22,6 +25,7 @@ def copy_card(damage: int, exploding: bool = False, *, count: int = 1) -> set[Ca
 
 Deck = list[Card]
 """ Decks are lists, so they can be shuffled. """
+
 
 def shuffled(deck: Deck) -> Deck:
     """
@@ -188,11 +192,11 @@ BLACK_DIE: Die = tuple(
 )
 
 
-# maybe we should specify the die as well
 def hit_rolling(number_of_rolls: int, die: Die) -> bool:
     """
 
     :param number_of_rolls: the number of dice rolled
+    :param die: the die to be rolled
     :return: whether the hand scores a hit
     """
     blanks = 0
@@ -232,6 +236,105 @@ def damage_rolling(number_in_initial_roll: int, die: Die) -> int:
             if explosions > 100_000:
                 raise RuntimeError("YIKES! More than 100000 explosions!")
     return damage if blanks <= 1 else 0
+
+
+# tracking the number of cards in the hand by type
+CollapsedDeck = list[int]
+
+
+def size(hand: CollapsedDeck) -> int:
+    """
+
+    :param hand: a hand of cards in collapsed form
+    :return: the total number of cards in the hand
+    """
+    return hand[0] + hand[1] + hand[2] + hand[3]
+
+
+def rational_white_damage(hand: CollapsedDeck) -> sp.Integer:
+    """
+
+    :param hand: a hand of cards in collapsed form
+    :return: the damage as an Integer done assuming the cards come from a white die
+    """
+    return sp.Integer(1) * hand[1] + sp.Integer(2) * (hand[2] + hand[3])
+
+
+def float_white_damage(hand: CollapsedDeck) -> float:
+    """
+
+    :param hand: a hand of cards in collapsed form
+    :return: the damage as a float done assuming the cards come from a white die
+    """
+    return 1.0 * hand[1] + 2.0 * (hand[2] + hand[3])
+
+
+def rational_card_damage_from_tree(
+    deck: CollapsedDeck, hand: CollapsedDeck, hand_size: int, probability: sp.Rational
+) -> sp.Rational:
+    """
+    Recursively etermines the average damage done when drawing from a deck with a starting hand of hand.
+    See also *oathsworn.c* for an implementation in C.
+
+    :param deck: the deck of cards to be drawn from in collapsed form
+    :param hand: the cards currently drawn in this attack
+    :param hand_size: the number of initial cards drawn in the attack
+    :param probability: the probability of having drawn the current hand
+    :return: the average damage (as a Rational) done with this starting hand
+    """
+    if size(hand) == hand_size + hand[3]:
+        damage = rational_white_damage(hand) * probability
+        return damage
+
+    damage = sp.Integer(0)
+    for card_type in range(4):
+        if deck[card_type] > 0:
+            prob = sp.Rational(deck[card_type], size(deck))
+            deck[card_type] -= 1
+            hand[card_type] += 1
+            if (
+                size(hand) > hand_size or hand[0] < 2
+            ):  # bonus card or we haven't missed yet
+                damage += rational_card_damage_from_tree(
+                    deck, hand, hand_size, probability * prob
+                )
+            hand[card_type] -= 1
+            deck[card_type] += 1
+    return damage
+
+
+def float_card_damage_from_tree(
+    deck: CollapsedDeck, hand: CollapsedDeck, hand_size: int, probability: float
+) -> float:
+    """
+    Recursively etermines the average damage done when drawing from a deck with a starting hand of hand.
+    See also *oathsworn.c* for an implementation in C.
+
+    :param deck: the deck of cards to be drawn from in collapsed form
+    :param hand: the cards currently drawn in this attack
+    :param hand_size: the number of initial cards drawn in the attack
+    :param probability: the probability of having drawn the current hand
+    :return: the average damage (as a float) done with this starting hand
+    """
+    if size(hand) == hand_size + hand[3]:
+        damage = float_white_damage(hand) * probability
+        return damage
+
+    damage = 0.0
+    for card_type in range(4):
+        if deck[card_type] > 0:
+            prob = deck[card_type] / size(deck)
+            deck[card_type] -= 1
+            hand[card_type] += 1
+            if (
+                size(hand) > hand_size or hand[0] < 2
+            ):  # bonus card or we haven't missed yet
+                damage += float_card_damage_from_tree(
+                    deck, hand, hand_size, probability * prob
+                )
+            hand[card_type] -= 1
+            deck[card_type] += 1
+    return damage
 
 
 if __name__ == "__main__":

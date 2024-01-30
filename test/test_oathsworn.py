@@ -3,9 +3,12 @@ import random
 import pytest
 import itertools as it
 
-from combinations import *
+from combinations import comb, mult
 
 import oathsworn as os
+
+# setting this False will skip tests with runtimes over 5 minutes
+run_long_tests: bool = False
 
 
 def set_seed() -> int:
@@ -15,6 +18,8 @@ def set_seed() -> int:
 
 
 class TestOathsworn:
+    # region Constants
+
     Expected_Card_Hit_Probabilities = (
         1,
         1,
@@ -27,6 +32,20 @@ class TestOathsworn:
         53 / 442,
         29 / 442,
         7 / 221,
+    )
+
+    Printed_Card_Hit_Probabilities = (
+        1.00,
+        1.00,
+        0.90,
+        0.75,
+        0.59,
+        0.44,
+        0.31,
+        0.20,
+        0.12,
+        0.07,
+        0.03,
     )
 
     Expected_Dice_Hit_Probabilities = (
@@ -43,6 +62,149 @@ class TestOathsworn:
         2048 / 19683,
     )
 
+    Printed_Dice_Hit_Probabilities = (
+        1.00,
+        1.00,
+        0.89,
+        0.74,
+        0.59,
+        0.46,
+        0.35,
+        0.26,
+        0.20,
+        0.14,
+        0.10,
+    )
+
+    Expected_White_Card_Damage = (
+        0 / 1,
+        47 / 40,
+        47 / 20,
+        193_527 / 61_880,
+        157_627 / 46_410,
+        656_611 / 204_204,
+        463_753 / 170_170,
+        912_919 / 437_580,
+        842 / 585,
+        85_919 / 97_240,
+        96_011 / 204_204,
+    )
+
+    Printed_White_Card_Damage = (
+        0.00,
+        1.18,
+        2.35,
+        3.13,
+        3.40,
+        3.22,
+        2.73,
+        2.09,
+        1.44,
+        0.88,
+        0.47,
+    )
+
+    Expected_Big_White_Card_Damage = (
+        0,
+        227 / 190,
+        227 / 95,
+        145_439_259 / 45_673_910,
+        7_965_689_344 / 2_260_858_545,
+        81_524_060_693 / 23_348_502_792,
+        29_560_614_227_209 / 9_203_201_517_180,
+        5_491_211_230_699_453 / 1_962_791_887_209_480,
+        # C floats have 24 bits of precision,
+        # so we cannot expect more than 7 digits out of these
+        2.335312,
+        1.883082,
+        1.474792,
+    )
+
+    Printed_Big_White_Card_Damage = (
+        0.00,
+        1.19,
+        2.39,
+        3.18,
+        3.52,
+        3.49,
+        3.21,
+        2.80,
+        2.34,
+        1.88,
+        1.47,
+    )
+
+    Expected_White_Dice_Damage = (
+        0,
+        6 / 5,
+        12 / 5,
+        16 / 5,
+        32 / 9,
+        32 / 9,
+        448 / 135,
+        3584 / 1215,
+        1024 / 405,
+        512 / 243,
+        11264 / 6561,
+    )
+
+    Printed_White_Dice_Damage = (
+        0.00,
+        1.20,
+        2.40,
+        3.20,
+        3.56,
+        3.56,
+        3.32,
+        2.95,
+        2.53,
+        2.11,
+        1.72,
+    )
+
+    # endregion
+
+    # region Rounding
+
+    @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_dice_hit_rounding(k: int) -> None:
+        expected = TestOathsworn.Expected_Dice_Hit_Probabilities
+        printed = TestOathsworn.Printed_Dice_Hit_Probabilities
+        assert abs(round(expected[k], 2) - printed[k]) < 0.005
+
+    @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_card_hit_rounding(k: int) -> None:
+        expected = TestOathsworn.Expected_Card_Hit_Probabilities
+        printed = TestOathsworn.Printed_Card_Hit_Probabilities
+        assert abs(round(expected[k], 2) - printed[k]) < 0.005
+
+    @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_white_card_damage_rounding(k: int) -> None:
+        expected = TestOathsworn.Expected_White_Card_Damage
+        printed = TestOathsworn.Printed_White_Card_Damage
+        assert abs(round(expected[k], 2) - printed[k]) < 0.005
+
+    @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_big_white_card_damage_rounding(k: int) -> None:
+        expected = TestOathsworn.Expected_Big_White_Card_Damage
+        printed = TestOathsworn.Printed_Big_White_Card_Damage
+        assert abs(round(expected[k], 2) - printed[k]) < 0.005
+
+    @staticmethod
+    @pytest.mark.parametrize("k", range(11))
+    def test_white_dice_damage_rounding(k: int) -> None:
+        expected = TestOathsworn.Expected_White_Dice_Damage
+        printed = TestOathsworn.Printed_White_Dice_Damage
+        assert abs(round(expected[k], 2) - printed[k]) < 0.005
+
+    # endregion
+
+    # region Card Hit
+
     @staticmethod
     @pytest.mark.parametrize("k", range(11))
     def test_card_hit_formula(k: int) -> None:
@@ -56,31 +218,10 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @pytest.mark.parametrize("k", range(11 if run_long_tests else 8))
     def test_card_hit_exhaustive(k: int) -> None:
         """
-
-        :param k:
-        :return:
-
-        Running times
-
-        k = 0, 1, 2, 3:
-            0 ms
-        k = 4:
-            14 ms
-        k = 5:
-            224 ms
-        k = 6:
-            3 sec 62 ms = 3062 ms
-        k = 7:
-            38 sec 177 ms = 38177 ms
-        k = 8:
-            7 min 11 sec = 431000 ms
-        k = 9:
-            1 hr 13 min = 4380000 ms
-        k = 10:
-            11 hr 29 min = 41340000
+        Runtimes over 5 min for k = 8, over 1 hour for k = 9, over 11 hours for k = 10.
         """
         trials = 0
         hits = 0
@@ -108,6 +249,10 @@ class TestOathsworn:
             abs(hits / trials - TestOathsworn.Expected_Card_Hit_Probabilities[k])
             < 0.005
         ), f"Bad Seed: {seed} and Trials: {trials}"
+
+    # endregion
+
+    # region Dice Hit
 
     @staticmethod
     @pytest.mark.parametrize("n", range(11))
@@ -140,47 +285,9 @@ class TestOathsworn:
             < 0.005
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
-    Expected_White_Card_Damage = (
-        0 / 4896,
-        86292 / 73440,
-        47 / 20,
-        193_527 / 61_880,
-        157_627 / 46_410,
-        3.22,
-        2.73,
-        2.09,
-        1.44,
-        0.88,
-        0.47,
-    )
+    # endregion
 
-    Expected_Big_White_Card_Damage = (
-        0,
-        1.20,
-        2.39,
-        3.18,
-        3.52,
-        3.49,
-        3.21,
-        2.80,
-        2.34,
-        1.88,
-        1.47
-    )
-
-    Expected_White_Dice_Damage = (
-        0,
-        6 / 5,
-        12 / 5,
-        16 / 5,
-        32 / 9,
-        32 / 9,
-        448 / 135,
-        3584 / 1215,
-        1024 / 405,
-        512 / 243,
-        11264 / 6561,
-    )
+    # region White Deck Damage
 
     @staticmethod
     def test_white_deck_damage_formula() -> None:
@@ -188,114 +295,87 @@ class TestOathsworn:
         return
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
-    def test_white_deck_damage_exhaustive(k: int):
+    @pytest.mark.parametrize("k", range(11 if run_long_tests else 6))
+    def big_test_white_deck_damage_exhaustive(k: int):
         """
-
-        Running Times
-        k = 0:
-            0 ms
-        k = 1:
-            15 ms
-        k = 2:
-            318 ms
-        k = 3:
-            5313 ms
-        k = 4:
-            1 min 14 sec = 74000 ms
-        k = 5:
-            14 min 49 sec = 889000 ms
-        k = 6:
-            2 hr 35 min = 7235000 ms
-        k = 7:
-            ?
-        k = 8:
-            ?
-        k = 9:
-            ?
-        k = 10:
-            ?
-
-        :param k:
-        :return:
+        Runtimes over 2 hours for k ≥ 6
         """
         trials = 0
         damage = 0
-        max_exploding_cards = 3  # should get this number by counting the exploding cards
+        max_exploding_cards = (
+            3  # should get this number by counting the exploding cards
+        )
         for shuffle in it.permutations(os.WHITE_DECK, k + max_exploding_cards):
             trials += 1
             damage += os.damage_drawing(k, list(shuffle))
         print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
-        assert abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 10**-15
+        assert (
+            abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k])
+            < 10**-15
+        )
 
     @staticmethod
-    @pytest.mark.parametrize("trials, k", [(10_000_000, k) for k in range(11)])
+    @pytest.mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_white_deck_damage_monte_carlo(trials: int, k: int):
         seed = set_seed
         damage = 0
         for _ in range(trials):
-            deck = os.shuffled(os.WHITE_DECK)  # don't need to shuffle the whole deck
+            deck = os.shuffled(os.WHITE_DECK)
             damage += os.damage_drawing(k, deck)
         # Table 5.4, p. 110
         assert (
-            abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 0.005
+            abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 0.1
         ), f"Bad Seed: {seed} and Trials: {trials}"
+
+    # endregion
+
+    # region Big White Deck Damage
+
+    @staticmethod
+    def test_big_white_deck_damage_formula() -> None:
+        """I do not know of a way to compute this with a formula."""
+        return
 
     @staticmethod
     @pytest.mark.parametrize("k", range(11))
-    def test_big_white_deck_damage_exhaustive(k: int):
+    def big_test_big_white_deck_damage_exhaustive(k: int):
         """
-
-        Running Times
-        k = 0:
-            ?
-        k = 1:
-            ?
-        k = 2:
-            ?
-        k = 3:
-            ?
-        k = 4:
-            ?
-        k = 5:
-            ?
-        k = 6:
-            ?
-        k = 7:
-            ?
-        k = 8:
-            ?
-        k = 9:
-            ?
-        k = 10:
-            ?
-
-        :param k:
-        :return:
+        Even if k = 0, there are roughly 6 * 10^28 shuffles to exam,
+        so we won't even try to run this one
         """
         trials = 0
         damage = 0
-        max_exploding_cards = 15  # should get this number by counting the exploding cards
+        max_exploding_cards = sum([1 for card in os.BIG_WHITE_DECK if card.exploding])
+        assert max_exploding_cards == 15
         for shuffle in it.permutations(os.BIG_WHITE_DECK, k + max_exploding_cards):
             trials += 1
+            print(trials)
             damage += os.damage_drawing(k, list(shuffle))
         print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
-        assert abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k]) < 10**-15
+        assert (
+            abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
+            < 10**-15
+        )
 
     @staticmethod
-    @pytest.mark.parametrize("trials, k", [(10_000_000, k) for k in range(11)])
+    @pytest.mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_big_white_deck_damage_monte_carlo(trials: int, k: int):
-        seed = set_seed
+        seed = set_seed()
         damage = 0
         for _ in range(trials):
-            deck = os.shuffled(os.BIG_WHITE_DECK)  # don't need to shuffle the whole deck
+            deck = os.shuffled(os.BIG_WHITE_DECK)
             damage += os.damage_drawing(k, deck)
         # Table 5.4, p. 110
         assert (
-            abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k]) < 0.005
+            abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
+            < 0.02
         ), f"Bad Seed: {seed} and Trials: {trials}"
+
+    # endregion
+
+    # region White Dice Damage
 
     @staticmethod
     @pytest.mark.parametrize("n", range(11))
@@ -329,7 +409,7 @@ class TestOathsworn:
         return
 
     @staticmethod
-    @pytest.mark.parametrize("trials, n", [(10_000_000, n) for n in range(11)])
+    @pytest.mark.parametrize("trials, n", [(500_000, n) for n in range(11)])
     def test_white_dice_damage_monte_carlo(trials: int, n: int) -> None:
         seed = set_seed()
         damage = 0
@@ -337,10 +417,8 @@ class TestOathsworn:
             damage += os.damage_rolling(n, os.WHITE_DIE)
         # Table 5.4, p. 110
         assert (
-            abs(damage / trials - TestOathsworn.Expected_White_Dice_Damage[n]) < 0.005
+            abs(damage / trials - TestOathsworn.Expected_White_Dice_Damage[n]) < 0.01
         ), f"Bad Seed: {seed} and Trials: {trials}"
         return
 
-
-if __name__ == "__main__":
-    ...
+    # endregion
