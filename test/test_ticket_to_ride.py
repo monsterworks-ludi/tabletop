@@ -251,7 +251,7 @@ class TestSimple:
 class TestFull:
     @staticmethod
     def test_ttr_costs() -> None:
-        montreal_los_angeles_cost = 0 * x
+        montreal_los_angeles_cost = sp.Integer(0)
         cost_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
@@ -259,7 +259,7 @@ class TestFull:
             montreal_los_angeles_cost = ttr.connection_weight(
                 cost_matrix, ttr.los_angeles, ttr.montreal
             )
-            if not montreal_los_angeles_cost == 0 * x:
+            if not montreal_los_angeles_cost == sp.Integer(0):
                 break
         # Not in text
         assert power == 6
@@ -270,7 +270,7 @@ class TestFull:
 
     @staticmethod
     def test_ttr_points() -> None:
-        montreal_los_angeles_points = 0 * v
+        montreal_los_angeles_points = sp.Integer(0)
         points_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
@@ -297,7 +297,7 @@ class TestFull:
 
     @staticmethod
     def test_ttr_combined() -> None:
-        montreal_los_angeles_combined = 0 * x * v
+        montreal_los_angeles_combined = sp.Integer(0)
         combined_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
@@ -305,7 +305,7 @@ class TestFull:
             montreal_los_angeles_combined = ttr.connection_weight(
                 combined_matrix, ttr.los_angeles, ttr.montreal
             )
-            if not montreal_los_angeles_combined == 0 * x * v:
+            if not montreal_los_angeles_combined == sp.Integer(0):
                 break
         # Example, p.77
         assert power == 6
@@ -325,7 +325,7 @@ class TestFull:
 
     @staticmethod
     def test_ttr_colors() -> None:
-        montreal_los_angeles_colors = 0 * x
+        montreal_los_angeles_colors = sp.Integer(0)
         color_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
@@ -333,7 +333,7 @@ class TestFull:
             montreal_los_angeles_colors = ttr.connection_weight(
                 color_matrix, ttr.los_angeles, ttr.montreal
             )
-            if not montreal_los_angeles_colors == 0 * x:
+            if not montreal_los_angeles_colors == sp.Integer(0):
                 break
         # Example, p.78
         assert power == 6
@@ -362,7 +362,7 @@ class TestFull:
     @staticmethod
     def test_six_hop_route() -> None:
         ic.enable()
-        montreal_los_angeles_route = 0 * x
+        montreal_los_angeles_route = sp.Integer(0)
         route_matrix = sp.eye(len(ttr.CITIES))
         power = 0
         for power in it.count(1):
@@ -370,7 +370,7 @@ class TestFull:
             montreal_los_angeles_route = ttr.connection_weight(
                 route_matrix, ttr.los_angeles, ttr.montreal
             )
-            if not montreal_los_angeles_route == 0 * x:
+            if not montreal_los_angeles_route == sp.Integer(0):
                 break
         # Comment on p. 78
         assert power == 6
