@@ -1,5 +1,9 @@
 import tile_counter as tc
 
+from icecream import ic  # type: ignore
+
+ic.disable()
+
 class TestTileCounter:
     @staticmethod
     def test_onesided_tiles() -> None:

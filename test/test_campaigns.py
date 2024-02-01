@@ -3,6 +3,8 @@ from icecream import ic  # type: ignore
 import debug as db
 import adjacency_matrices as am
 
+ic.disable()
+
 class TestCampaigns:
     @staticmethod
     def test_pandemic() -> None:

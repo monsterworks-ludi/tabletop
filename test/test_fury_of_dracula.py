@@ -1,8 +1,11 @@
 import sympy as sp
 
+from icecream import ic  # type: ignore
+
 import adjacency_matrices as am
 import fury_of_dracula as fod
 
+ic.disable()
 
 class TestIberia:
     @staticmethod

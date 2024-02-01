@@ -1,8 +1,9 @@
 import sys
 import random
-import pytest
-
 import itertools as it
+
+import pytest
+from icecream import ic  # type: ignore
 
 import combinations as cmb
 import zombicide as zc

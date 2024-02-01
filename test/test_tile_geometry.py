@@ -1,6 +1,10 @@
 import sympy as sp
 
+from icecream import ic  # type: ignore
+
 import tile_geometry as tg
+
+ic.disable()
 
 
 class TestTileGeometry:

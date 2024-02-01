@@ -1,4 +1,7 @@
+from icecream import ic  # type: ignore
 import hand_counter as hc
+
+ic.disable()
 
 class TestHandCounter:
 

@@ -1,10 +1,8 @@
 import random
 import sympy as sp
 from collections import defaultdict
-from pprint import pprint
 
 from icecream import ic  # type: ignore
-import debug
 
 ic.disable()
 
@@ -59,13 +57,10 @@ def to_infinity(mat: sp.Matrix) -> sp.Matrix:
 
 
 def distribution_to_column(state_count, distribution):
-    # debug.turn_on_ic()
-    # cleanup = debug.turn_off_ic
     prob_list = []
     for state in range(1, state_count + 1):
         prob_list.append([distribution[state]] if state in distribution else [0])
     ic(prob_list)
-    debug.cleanup()
     return sp.Matrix(prob_list)
 
 
@@ -441,8 +436,6 @@ def run_combat(state):
         state = combat_transition(state)
         rounds += 1
     return state, rounds
-
-
 
 # endregion
 

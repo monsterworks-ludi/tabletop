@@ -1,12 +1,14 @@
 import sys
 import random
-import pytest
 import itertools as it
 
-from combinations import comb, mult
+import pytest
+from icecream import ic  # type: ignore
 
+from combinations import comb, mult
 import oathsworn as os
 
+ic.disable()
 # setting this False will skip tests with runtimes over 5 minutes
 run_long_tests: bool = False
 

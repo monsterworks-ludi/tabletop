@@ -1,31 +1,6 @@
 from icecream import ic  # type: ignore
 
-
 IC_DEPTH = 0
-
-
-def turn_on_ic():
-    global IC_DEPTH
-    IC_DEPTH += 1
-    info = f"ic down, current depth: {IC_DEPTH}"
-    ic.enable()
-    ic(info)
-
-
-def turn_off_ic():
-    global IC_DEPTH
-    IC_DEPTH -= 1
-    if IC_DEPTH <= 0:
-        info = f"ic disabled"
-        ic(info)
-        ic.disable()
-    else:
-        info = f"ic up, current depth: {IC_DEPTH}"
-        ic(info)
-
-def cleanup():
-    return
-
 
 def debug(func):
     """
@@ -36,11 +11,53 @@ def debug(func):
     """
 
     def wrapper(*arg):
+        global IC_DEPTH
+        IC_DEPTH += 1
+        info = f"ic enabled, current depth: {IC_DEPTH}"
         ic.enable()
-        print("ic enabled")
+        ic(info)
+
         res = func(*arg)
+
+        IC_DEPTH -= 1
+        if IC_DEPTH <= 0:
+            info = f"ic disabled"
+            ic(info)
+            ic.disable()
+        else:
+            info = f"ic not disabled, current depth: {IC_DEPTH}"
+            ic(info)
+
+        return res
+
+    return wrapper
+
+
+def undebug(func):
+    """
+    toggles ic printing for the wrapped function
+
+    :param func: function to be wrapped
+    :return: the wrapped function
+    """
+
+    def wrapper(*arg):
+        global IC_DEPTH
+        IC_DEPTH -= 1
+        info = f"ic disabled"
+        ic(info)
         ic.disable()
-        print("ic disabled")
+
+        res = func(*arg)
+
+        IC_DEPTH += 1
+        if IC_DEPTH > 0:
+            info = f"ic reenabled, current depth: {IC_DEPTH}"
+            ic.enable()
+            ic(info)
+        else:
+            ...
+
         return res
 
     return wrapper

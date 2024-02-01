@@ -1,6 +1,10 @@
+from icecream import ic  # type: ignore
+
 from combinations import *
 import grizzled as gz
 from grizzled import assault, gas, shelling
+
+ic.disable()
 
 # Testing of very basic counting from Section 1.1 -- 1.3
 

@@ -3,8 +3,6 @@ import random
 
 from icecream import ic  # type: ignore
 import pytest
-import debug
-from debug import cleanup
 
 import sympy as sp
 
@@ -685,8 +683,6 @@ class TestExciting:
         "initial_state, trials", [(i, 100_000) for i in range(1, 15)]
     )
     def test_exciting_battle_transitions_monte_carlo(initial_state, trials):
-        # debug.turn_on_ic()
-        # cleanup = debug.turn_off_ic
         seed = set_seed()
 
         new_states = defaultdict(int)
@@ -701,16 +697,12 @@ class TestExciting:
         # Fig 5.7, p. 118
         assert rb.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
 
-        debug.cleanup()
-
     @staticmethod
     @pytest.mark.parametrize(
         "initial_state, trials", [(i, 100_000) for i in range(1, 11)]
     )
     def test_exciting_outcomes(initial_state, trials):
         seed = set_seed()
-        # debug.turn_on_ic()
-        # cleanup = debug.turn_off_ic
 
         distribution = defaultdict(int)
         duration = 0
@@ -730,7 +722,3 @@ class TestExciting:
         assert rb.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
         expected_duration = TestExciting.EXPECTED_EXCITING_ONER[:, initial_state - 1][0]
         assert abs(duration - expected_duration) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
-
-        cleanup()
-
-

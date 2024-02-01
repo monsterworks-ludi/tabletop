@@ -7,6 +7,7 @@ import adjacency_matrices as am
 import ticket_to_ride as ttr
 from ticket_to_ride import x, v, b, g, p, r, t, w, y
 
+ic.disable()
 
 class TestSimple:
     @staticmethod
