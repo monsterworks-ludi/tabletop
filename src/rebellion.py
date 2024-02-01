@@ -10,6 +10,9 @@ ic.disable()
 
 # region Basic Markov Functions
 
+def mat_max(matrix):
+    return max(abs(matrix.row(i)[j]) for i in range(matrix.rows) for j in range(matrix.cols))
+
 
 def rat_mat(mat: list[list[int]], q: int, *, exact=True) -> sp.Matrix:
     if exact:
@@ -17,11 +20,14 @@ def rat_mat(mat: list[list[int]], q: int, *, exact=True) -> sp.Matrix:
     else:
         return 1 / q * sp.Matrix(mat)
 
+
 def transition_matrix(states, transition_distribution):
-    return sp.Matrix([
-        [col[row] if row in col else 0 for row in range(1, 1 + states)]
-        for col in [transition_distribution(i) for i in range(1, 1 + states)]
-    ]).transpose()
+    return sp.Matrix(
+        [
+            [col[row] if row in col else 0 for row in range(1, 1 + states)]
+            for col in [transition_distribution(i) for i in range(1, 1 + states)]
+        ]
+    ).transpose()
 
 
 def markov(q, r) -> sp.Matrix:
@@ -51,8 +57,21 @@ def to_infinity(mat: sp.Matrix) -> sp.Matrix:
     )
     return matoo
 
+
+def distribution_to_column(state_count, distribution):
+    # debug.turn_on_ic()
+    # cleanup = debug.turn_off_ic
+    prob_list = []
+    for state in range(1, state_count + 1):
+        prob_list.append([distribution[state]] if state in distribution else [0])
+    ic(prob_list)
+    debug.cleanup()
+    return sp.Matrix(prob_list)
+
+
 def is_distribution(dist):
     return abs(sum(value for value in dist.values()) - 1) < 10**-15
+
 
 # endregion
 
@@ -135,7 +154,7 @@ ONE = sp.Rational(1, 1)
 BLACK_HIT = 0
 RED_HIT = 1
 CRITICAL_HIT = 2
-MISS = 4
+MISS = 3
 
 # Y-wing rolls red (1/2)
 # Perhaps we should use the BRCM encoding here
@@ -191,12 +210,15 @@ EMPIRE_HIT_DISTRIBUTION = {
 assert is_distribution(EMPIRE_HIT_DISTRIBUTION)
 
 
+# todo: hits should really be a hit vector BRCM
 def apply_hits_to_destroyer(destroyer_damage, hits):
     destroyer_damage = min(destroyer_damage + hits, 4)
     return destroyer_damage
 
+
 CORVETTE_HITS = 0
 Y_WING_HITS = 1
+
 
 def apply_hits_to_rebels(corvette_damage, y_wing_damage, hits):
     hits = list(hits)
@@ -323,9 +345,11 @@ def exciting_transition_distribution(state):
     assert is_distribution(state_distribution)
     return state_distribution
 
+
 # endregion
 
-# region probabalistic methods
+# region Probabalistic Battle
+
 
 def black_die_result():
     roll = random.randint(1, 6)
@@ -349,6 +373,12 @@ def red_die_result():
         return CRITICAL_HIT
 
 
+def roll_y_wing_attack():
+    result = [0, 0, 0, 0]
+    result[red_die_result()] += 1
+    return result
+
+
 def roll_corvette_attack():
     result = [0, 0, 0, 0]
     result[black_die_result()] += 1
@@ -356,13 +386,7 @@ def roll_corvette_attack():
     return result
 
 
-def roll_ywing_attack():
-    result = [0, 0, 0, 0]
-    result[red_die_result()] += 1
-    return result
-
-
-def roll_empire_attack():
+def roll_destroyer_attack():
     result = [0, 0, 0, 0]
     result[black_die_result()] += 1
     result[red_die_result()] += 1
@@ -371,19 +395,56 @@ def roll_empire_attack():
     return result
 
 
+def combat_step(damages):
+    corvette_damage = damages[CORVETTE_DAMAGE]
+    destroyer_damage = damages[DESTROYER_DAMAGE]
+    y_wing_damage = damages[Y_WING_DAMAGE]
+
+    if y_wing_damage < 1:
+        y_wing_hits = roll_y_wing_attack()
+    else:
+        y_wing_hits = [0, 0, 0, 0]
+
+    if corvette_damage < 2:
+        corvette_hits = roll_corvette_attack()
+    else:
+        corvette_hits = [0, 0, 0, 0]
+
+    total_rebel_damage = (
+        y_wing_hits[RED_HIT]
+        + y_wing_hits[CRITICAL_HIT]
+        + corvette_hits[RED_HIT]
+        + corvette_hits[CRITICAL_HIT]
+    )
+    destroyer_damage_new = apply_hits_to_destroyer(destroyer_damage, total_rebel_damage)
+
+    total_empire_damage = roll_destroyer_attack()
+    corvette_damage_new, y_wing_damage_new = apply_hits_to_rebels(
+        corvette_damage, y_wing_damage, total_empire_damage
+    )
+
+    return corvette_damage_new, destroyer_damage_new, y_wing_damage_new
+
+
+def combat_transition(state):
+    if state > 10:
+        return state
+    assert len(BATTLE_STATES[state]) == 1
+    damage = next(iter(BATTLE_STATES[state]))
+    damage_new = combat_step(damage)
+    state_new = state_for_damage(damage_new)
+    return state_new
+
+def run_combat(state):
+    rounds = 0
+    while state <= 10:
+        state = combat_transition(state)
+        rounds += 1
+    return state, rounds
+
+
+
 # endregion
 
 if __name__ == "__main__":
-    P = transition_matrix(14, exciting_transition_distribution)
-    Q = P[0:10, 0:10]
-    R = P[10:14, 0:10]
-    pprint(P.applyfunc(lambda x: round(x, 2)))
-    pprint(Q.applyfunc(lambda x: round(x, 2)))
-    pprint(R.applyfunc(lambda x: round(x, 2)))
-    N = markov_n(Q)
-    pprint(N.applyfunc(lambda x: round(x, 2)))
-    pprint((R*N).applyfunc(lambda x: round(x, 2)))
-    pprint((sp.ones(1, N.rows)*N).applyfunc(lambda x: round(x, 2)))
-
-
-
+    ...
