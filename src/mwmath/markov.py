@@ -53,9 +53,11 @@ def distribution_to_column(state_count, distribution):
     prob_list = []
     for state in range(1, state_count + 1):
         prob_list.append([distribution[state]] if state in distribution else [0])
-    ic(prob_list)
     return sp.Matrix(prob_list)
 
 
 def is_distribution(dist):
     return abs(sum(value for value in dist.values()) - 1) < 10**-15
+
+def zero():
+    return sp.Rational(0, 1)
