@@ -7,13 +7,9 @@ from pytest import mark
 import mwmath.monte_carlo as mc
 import mwmath.markov as mkv
 import game.rebellion as rb
+from mwmath.rounding import round_to
 
 ic.disable()
-
-
-def round_to(decimals):
-    return lambda x: round(x, decimals)
-
 
 class TestSimple:
     TIE_Y_MAT = mkv.rat_mat(
@@ -81,8 +77,10 @@ class TestSimple:
             y_damage = 0
             while tie_damage == 0 and y_damage == 0:
                 if rb.black_die_result() in {rb.BLACK_HIT, rb.CRITICAL_HIT}:
+                    # tie fighter has hit with a black die
                     y_damage += 1
-                if rb.red_die_result in {rb.CRITICAL_HIT}:
+                if rb.red_die_result() in {rb.CRITICAL_HIT}:
+                    # y_wing has hit with a red die
                     tie_damage += 1
             if tie_damage == 1 and y_damage == 1:
                 both_destroyed += 1

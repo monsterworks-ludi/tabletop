@@ -10,67 +10,50 @@ ic.disable()
 
 # region Exciting Space Battle
 
-# todo: set up consistent ordering of y_wing, corvette, destroyer
 # todo: doc strings
-# states start at 1 to match book and give corvette, destroyer, y_wing damage
-# it might have made more sense to do this as y_wing, corvette, destroyer
-CORVETTE_DAMAGE = 0
-DESTROYER_DAMAGE = 1
-Y_WING_DAMAGE = 2
+Y_WING_DAMAGE = 0
+CORVETTE_DAMAGE = 1
+DESTROYER_DAMAGE = 2
 
 BATTLE_STATES = {
     1: {(0, 0, 0)},
-    2: {(1, 0, 0)},
-    3: {(2, 0, 0)},
-    4: {(0, 1, 0)},
-    5: {(1, 1, 0)},
-    6: {(2, 1, 0)},
-    7: {(0, 0, 1)},
-    8: {(1, 0, 1)},
-    11: {  # corvette & Y-wing destroyed, destroyer not destroyed
-        (2, 0, 1),
-        (2, 1, 1),
-        (2, 2, 1),
-        (2, 3, 1),
-    },
-    9: {(0, 1, 1)},
+    2: {(0, 1, 0)},
+    3: {(0, 2, 0)},
+    4: {(0, 0, 1)},
+    5: {(0, 1, 1)},
+    6: {(0, 2, 1)},
+    7: {(1, 0, 0)},
+    8: {(1, 1, 0)},
+    9: {(1, 0, 1)},
     10: {(1, 1, 1)},
-    12: {  # destroyer damaged twice, any rebel ship alive
-        (0, 2, 0),
+    11: {  # Y-wing & corvette destroyed, destroyer not destroyed
         (1, 2, 0),
-        (2, 2, 0),
-        (0, 2, 1),
         (1, 2, 1),
-        (0, 2, 0),
-        (1, 2, 0),
-        (2, 2, 0),
-        (0, 2, 1),
-        (1, 2, 1),
-        (0, 3, 0),
-        (1, 3, 0),
-        (2, 3, 0),
-        (0, 3, 1),
-        (1, 3, 1),
-        (0, 3, 0),
-        (1, 3, 0),
-        (2, 3, 0),
-        (0, 3, 1),
-        (1, 3, 1),
+        (1, 2, 2),
+        (1, 2, 3),
+    },
+    12: {  # destroyer damaged at least twice, any rebel ship alive
+        (0, 0, 2),  # both alive
+        (0, 1, 2),  # both alive, corvette damaged
+        (0, 2, 2),  # y_wing alive
+        (1, 0, 2),  # corvette alive
+        (1, 1, 2),  # corvette damaged
+        (0, 0, 3),  # both alive
+        (0, 1, 3),  # both alive, corvette damaged
+        (0, 2, 3),  # y_wing alive
+        (1, 0, 3),  # corvette alive
+        (1, 1, 3),  # corvette damaged
     },
     13: {  # destroyer destroyed, any rebel ship alive
-        (0, 4, 0),
-        (1, 4, 0),
-        (2, 4, 0),
-        (0, 4, 1),
-        (1, 4, 1),
-        (0, 4, 0),
-        (1, 4, 0),
-        (2, 4, 0),
-        (0, 4, 1),
-        (1, 4, 1),
+        (0, 0, 4),  # both alive
+        (0, 1, 4),  # both alive, corvette damaged
+        (0, 2, 4),  # y_wing alive
+        (1, 0, 4),  # corvette alive
+        (1, 1, 4),  # corvette damaged
     },
-    14: {(2, 4, 1)},
+    14: {(1, 2, 4)},  # all destroyed
 }
+assert sum((len(value) for value in BATTLE_STATES.values())) == 2 * 3 * 5
 
 
 def state_for_damage(damage):
@@ -81,6 +64,7 @@ def state_for_damage(damage):
 
 
 ONE_SIXTH = sp.Rational(1, 6)
+ONE_QUARTER = sp.Rational(1, 4)
 ONE_THIRD = sp.Rational(1, 3)
 ONE_HALF = sp.Rational(1, 2)
 FIVE_SIXTH = sp.Rational(5, 6)
@@ -91,71 +75,67 @@ RED_HIT = 1
 CRITICAL_HIT = 2
 MISS = 3
 
-# Y-wing rolls red (1/2)
-# Perhaps we should use the BRCM encoding here
-# (0, 0, 0, 0): ONE_HALF
-# (1, 0, 0, 0): ONE_HALF
-Y_WING_HIT_DISTRIBUTION = {
-    0: ONE_HALF,  # M
-    1: ONE_HALF,  # H
+Y_WING_HIT_DISTRIBUTION = {  # Y-wing rolls red
+    (0, 0, 0, 1): ONE_HALF,  # M
+    (0, 1, 0, 0): ONE_QUARTER,  # R
+    (0, 0, 1, 0): ONE_QUARTER  # C
 }
 assert mkv.is_distribution(Y_WING_HIT_DISTRIBUTION)
+for KEY in Y_WING_HIT_DISTRIBUTION:
+    assert sum(KEY) == 1
 
-# corvette rolls black (1/6) and red (1/2)
-# Perhaps we should use the BRCM encoding here
-CORVETTE_HIT_DISTRIBUTION = {
-    0: FIVE_SIXTH * ONE_HALF,  # MM
-    1: ONE_SIXTH * ONE_HALF + FIVE_SIXTH * ONE_HALF,  # HM, MH
-    2: ONE_SIXTH * ONE_HALF,  # HH
+CORVETTE_HIT_DISTRIBUTION = {  # corvette rolls black, red
+    (0, 0, 0, 2): FIVE_SIXTH * ONE_HALF,  # MM
+    (0, 1, 0, 1): FIVE_SIXTH * ONE_HALF,  # MH
+    (0, 0, 1, 1): ONE_SIXTH * ONE_HALF,  # CM
+    (0, 1, 1, 0): ONE_SIXTH * ONE_THIRD,  # CH
+    (0, 0, 2, 0): ONE_SIXTH * ONE_SIXTH,  # CC
 }
 assert mkv.is_distribution(CORVETTE_HIT_DISTRIBUTION)
+for KEY in CORVETTE_HIT_DISTRIBUTION:
+    assert sum(KEY) == 2
 
-# destroyer rolls black, red, red
-# Perhaps we should use the BRCM encoding here
-EMPIRE_HIT_DISTRIBUTION = {
+EMPIRE_HIT_DISTRIBUTION = {  # destroyer rolls black, red, red
     # black, red, critical
-    (0, 0, 0): ONE_HALF * ONE_HALF * ONE_HALF,  # MMM
-    (0, 0, 1): ONE_SIXTH * ONE_HALF * ONE_HALF
+    (0, 0, 0, 3): ONE_HALF * ONE_HALF * ONE_HALF,  # MMM
+    (0, 0, 1, 2): ONE_SIXTH * ONE_HALF * ONE_HALF
     + ONE_HALF * ONE_SIXTH * ONE_HALF
     + ONE_HALF * ONE_HALF * ONE_SIXTH,  # CMM, MCM, MMC
-    (0, 0, 2): ONE_SIXTH * ONE_SIXTH * ONE_HALF
+    (0, 0, 2, 1): ONE_SIXTH * ONE_SIXTH * ONE_HALF
     + ONE_SIXTH * ONE_HALF * ONE_SIXTH
     + ONE_HALF * ONE_SIXTH * ONE_SIXTH,  # CCM, CMC, MCC
-    (0, 0, 3): ONE_SIXTH * ONE_SIXTH * ONE_SIXTH,  # CCC
-    (0, 1, 0): ONE_HALF * ONE_THIRD * ONE_HALF
+    (0, 0, 3, 0): ONE_SIXTH * ONE_SIXTH * ONE_SIXTH,  # CCC
+    (0, 1, 0, 2): ONE_HALF * ONE_THIRD * ONE_HALF
     + ONE_HALF * ONE_HALF * ONE_THIRD,  # MRM, MMR
-    (0, 1, 1): ONE_SIXTH * ONE_THIRD * ONE_HALF
+    (0, 1, 1, 1): ONE_SIXTH * ONE_THIRD * ONE_HALF
     + ONE_SIXTH * ONE_HALF * ONE_THIRD
     + ONE_HALF * ONE_SIXTH * ONE_THIRD
     + ONE_HALF * ONE_THIRD * ONE_SIXTH,  # CRM, CMR, MCR, MRC
-    (0, 1, 2): ONE_SIXTH * ONE_SIXTH * ONE_THIRD
+    (0, 1, 2, 0): ONE_SIXTH * ONE_SIXTH * ONE_THIRD
     + ONE_SIXTH * ONE_THIRD * ONE_SIXTH,  # CCR CRC
-    (0, 2, 0): ONE_HALF * ONE_THIRD * ONE_THIRD,  # MRR
-    (0, 2, 1): ONE_SIXTH * ONE_THIRD * ONE_THIRD,  # CRR
-    (1, 0, 0): ONE_THIRD * ONE_HALF * ONE_HALF,  # BMM
-    (1, 0, 1): ONE_THIRD * ONE_SIXTH * ONE_HALF
+    (0, 2, 0, 1): ONE_HALF * ONE_THIRD * ONE_THIRD,  # MRR
+    (0, 2, 1, 0): ONE_SIXTH * ONE_THIRD * ONE_THIRD,  # CRR
+    (1, 0, 0, 2): ONE_THIRD * ONE_HALF * ONE_HALF,  # BMM
+    (1, 0, 1, 1): ONE_THIRD * ONE_SIXTH * ONE_HALF
     + ONE_THIRD * ONE_HALF * ONE_SIXTH,  # BCM, BMC
-    (1, 0, 2): ONE_THIRD * ONE_SIXTH * ONE_SIXTH,  # BCC
-    (1, 1, 0): ONE_THIRD * ONE_THIRD * ONE_HALF
+    (1, 0, 2, 0): ONE_THIRD * ONE_SIXTH * ONE_SIXTH,  # BCC
+    (1, 1, 0, 1): ONE_THIRD * ONE_THIRD * ONE_HALF
     + ONE_THIRD * ONE_HALF * ONE_THIRD,  # BRM, BMR
-    (1, 1, 1): ONE_THIRD * ONE_SIXTH * ONE_THIRD
+    (1, 1, 1, 0): ONE_THIRD * ONE_SIXTH * ONE_THIRD
     + ONE_THIRD * ONE_THIRD * ONE_SIXTH,  # BCR, BRC
-    (1, 2, 0): ONE_THIRD * ONE_THIRD * ONE_THIRD,  # BRR
+    (1, 2, 0, 0): ONE_THIRD * ONE_THIRD * ONE_THIRD,  # BRR
 }
 assert mkv.is_distribution(EMPIRE_HIT_DISTRIBUTION)
+for KEY in EMPIRE_HIT_DISTRIBUTION:
+    assert sum(KEY) == 3
 
-
-# todo: hits should really be a hit vector BRCM
 def apply_hits_to_destroyer(destroyer_damage, hits):
-    destroyer_damage = min(destroyer_damage + hits, 4)
-    return destroyer_damage
+    applied_hits = hits[RED_HIT] + hits[CRITICAL_HIT]
+    destroyer_damage_new = min(destroyer_damage + applied_hits, 4)
+    return destroyer_damage_new
 
 
-CORVETTE_HITS = 0
-Y_WING_HITS = 1
-
-
-def apply_hits_to_rebels(corvette_damage, y_wing_damage, hits):
+def apply_hits_to_rebels(y_wing_damage, corvette_damage, hits):
     hits = list(hits)
     # pile the black hits on the y-wing
     applied_damage = min(1 - y_wing_damage, hits[BLACK_HIT])
@@ -190,7 +170,7 @@ def apply_hits_to_rebels(corvette_damage, y_wing_damage, hits):
         assert y_wing_damage == 1
 
     if hits[RED_HIT] > 0:
-        # we have left over red damage so corvette should be destroyed
+        # we have left over red damage, so corvette should be destroyed
         assert corvette_damage == 2
 
     if hits[CRITICAL_HIT] > 0:
@@ -198,14 +178,15 @@ def apply_hits_to_rebels(corvette_damage, y_wing_damage, hits):
         assert y_wing_damage == 1
         assert corvette_damage == 2
 
-    return corvette_damage, y_wing_damage
+    return y_wing_damage, corvette_damage
 
 
-def merge_rebel_hits_distributions(corvette_distribution, y_wing_distribution):
+def merge_rebel_hit_distributions(y_wing_distribution, corvette_distribution):
     merged_distribution = defaultdict(int)
-    for cor_hits, cor_prob in corvette_distribution.items():
-        for y_hits, y_prob in y_wing_distribution.items():
-            merged_distribution[cor_hits + y_hits] += cor_prob * y_prob
+    for y_hits, y_prob in y_wing_distribution.items():
+        for cor_hits, cor_prob in corvette_distribution.items():
+            total_hits = tuple(sum(value) for value in zip(y_hits, cor_hits))
+            merged_distribution[total_hits] += y_prob * cor_prob
     assert mkv.is_distribution(merged_distribution)
     return merged_distribution
 
@@ -216,11 +197,7 @@ def merge_damage_distributions(rebel_damage_distribution, empire_damage_distribu
     merged_damage_distribution = defaultdict(int)
     for rebel_dam, rebel_prob in rebel_damage_distribution.items():
         for emp_dam, emp_prob in empire_damage_distribution.items():
-            # book tracks them as "corvette, destroyer, y_wing"
-            # it might make more sense as "y_wing, corvette, destroyer"
-            merged_damage_distribution[(rebel_dam[0], emp_dam, rebel_dam[1])] += (
-                rebel_prob * emp_prob
-            )
+            merged_damage_distribution[(*rebel_dam, emp_dam)] += rebel_prob * emp_prob
     assert mkv.is_distribution(merged_damage_distribution)
     ic(merged_damage_distribution)
 
@@ -238,22 +215,24 @@ def exciting_transition_distribution(state):
 
     assert len(BATTLE_STATES[state]) == 1
     damage = next(iter(BATTLE_STATES[state]))
+    y_wing_damage = damage[Y_WING_DAMAGE]
     corvette_damage = damage[CORVETTE_DAMAGE]
     destroyer_damage = damage[DESTROYER_DAMAGE]
-    y_wing_damage = damage[Y_WING_DAMAGE]
+
+    if y_wing_damage < 1:
+        y_wing_hit_distribution = Y_WING_HIT_DISTRIBUTION
+    else:
+        y_wing_hit_distribution = {(0, 0, 0, 1): ONE}
 
     if corvette_damage < 2:
         corvette_hit_distribution = CORVETTE_HIT_DISTRIBUTION
     else:
-        corvette_hit_distribution = {0: ONE}
-    if y_wing_damage < 1:
-        y_wing_hit_distribution = Y_WING_HIT_DISTRIBUTION
-    else:
-        y_wing_hit_distribution = {0: ONE}
+        corvette_hit_distribution = {(0, 0, 0, 2): ONE}
     ic(corvette_hit_distribution)
     ic(y_wing_hit_distribution)
-    rebel_hit_distribution = merge_rebel_hits_distributions(
-        corvette_hit_distribution, y_wing_hit_distribution
+
+    rebel_hit_distribution = merge_rebel_hit_distributions(
+        y_wing_hit_distribution, corvette_hit_distribution
     )
     ic(rebel_hit_distribution)
 
@@ -261,16 +240,16 @@ def exciting_transition_distribution(state):
     empire_hit_distribution = EMPIRE_HIT_DISTRIBUTION
     ic(empire_hit_distribution)
     for hits, prob in empire_hit_distribution.items():
-        new_corv_damage, new_y_wing_damage = apply_hits_to_rebels(
-            corvette_damage, y_wing_damage, hits
+        y_wing_damage_new, corv_damage_new = apply_hits_to_rebels(
+            y_wing_damage, corvette_damage, hits
         )
-        rebel_damage_distribution[(new_corv_damage, new_y_wing_damage)] += prob
+        rebel_damage_distribution[(y_wing_damage_new, corv_damage_new)] += prob
     assert mkv.is_distribution(rebel_damage_distribution)
 
     empire_damage_distribution = defaultdict(int)
     for hits, prob in rebel_hit_distribution.items():
-        new_damage = apply_hits_to_destroyer(destroyer_damage, hits)
-        empire_damage_distribution[new_damage] += prob
+        destroyer_damage_new = apply_hits_to_destroyer(destroyer_damage, hits)
+        empire_damage_distribution[destroyer_damage_new] += prob
     assert mkv.is_distribution(empire_damage_distribution)
 
     state_distribution = merge_damage_distributions(
@@ -288,9 +267,9 @@ def exciting_transition_distribution(state):
 
 def black_die_result():
     roll = rnd.randint(1, 6)
-    if roll == 1 or roll == 2 or roll == 3:
+    if roll in {1, 2, 3}:
         return MISS
-    elif roll == 4 or roll == 5:
+    elif roll in {4, 5}:
         return BLACK_HIT
     else:
         assert roll == 6
@@ -299,9 +278,9 @@ def black_die_result():
 
 def red_die_result():
     roll = rnd.randint(1, 6)
-    if roll == 1 or roll == 2 or roll == 3:
+    if roll in {1, 2, 3}:
         return MISS
-    elif roll == 4 or roll == 5:
+    elif roll in {4, 5}:
         return RED_HIT
     else:
         assert roll == 6
@@ -330,35 +309,30 @@ def roll_destroyer_attack():
     return result
 
 
-def combat_step(damages):
-    corvette_damage = damages[CORVETTE_DAMAGE]
-    destroyer_damage = damages[DESTROYER_DAMAGE]
-    y_wing_damage = damages[Y_WING_DAMAGE]
+def combat_step(damage):
+    y_wing_damage = damage[Y_WING_DAMAGE]
+    corvette_damage = damage[CORVETTE_DAMAGE]
+    destroyer_damage = damage[DESTROYER_DAMAGE]
 
     if y_wing_damage < 1:
         y_wing_hits = roll_y_wing_attack()
     else:
-        y_wing_hits = [0, 0, 0, 0]
+        y_wing_hits = (0, 0, 0, 1)
 
     if corvette_damage < 2:
         corvette_hits = roll_corvette_attack()
     else:
-        corvette_hits = [0, 0, 0, 0]
+        corvette_hits = (0, 0, 0, 2)
 
-    total_rebel_damage = (
-        y_wing_hits[RED_HIT]
-        + y_wing_hits[CRITICAL_HIT]
-        + corvette_hits[RED_HIT]
-        + corvette_hits[CRITICAL_HIT]
-    )
+    total_rebel_damage = tuple(sum(value) for value in zip(y_wing_hits, corvette_hits))
     destroyer_damage_new = apply_hits_to_destroyer(destroyer_damage, total_rebel_damage)
 
     total_empire_damage = roll_destroyer_attack()
-    corvette_damage_new, y_wing_damage_new = apply_hits_to_rebels(
-        corvette_damage, y_wing_damage, total_empire_damage
+    y_wing_damage_new, corvette_damage_new = apply_hits_to_rebels(
+        y_wing_damage, corvette_damage, total_empire_damage
     )
 
-    return corvette_damage_new, destroyer_damage_new, y_wing_damage_new
+    return y_wing_damage_new, corvette_damage_new, destroyer_damage_new
 
 
 def combat_transition(state):
@@ -370,12 +344,14 @@ def combat_transition(state):
     state_new = state_for_damage(damage_new)
     return state_new
 
+
 def run_combat(state):
     rounds = 0
     while state <= 10:
         state = combat_transition(state)
         rounds += 1
     return state, rounds
+
 
 # endregion
 
