@@ -1,5 +1,6 @@
-import sympy as sp
 import itertools as it
+
+import sympy as sp
 
 assault, gas, shelling, snow, rain, night = sp.symbols("a, g, s, w, r, n")
 
@@ -45,7 +46,7 @@ def contains_all_threats(card: Card, threats: set[sp.Symbol]) -> bool:
 
     :param card: the card to be checked
     :param threats: which threats to check for
-    :return: True if the card contains all of the threats
+    :return: True if the card contains all the threats
     """
     for threat in threats:
         if threat not in card[0]:
@@ -64,7 +65,7 @@ def contains_no_threats(card: Card, threats: set[sp.Symbol]) -> bool:
             return False
     return True
 
-def count_threats(threats: set[sp.Symbol], cards: tuple[Card, ...]=DECK) -> int:
+def count_threats(threats: set[sp.Symbol], cards: tuple[Card, ...] = DECK) -> int:
     """
 
     :param threats: the threats to check for

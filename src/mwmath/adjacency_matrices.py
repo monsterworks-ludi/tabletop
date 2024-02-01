@@ -1,9 +1,8 @@
-import sympy as sp
 import itertools as it
 from collections import defaultdict
-
 from typing import Callable, Optional
 
+import sympy as sp
 
 Connections = dict[int, set[int]]
 """Key is vertex index.

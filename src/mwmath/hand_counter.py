@@ -1,8 +1,9 @@
-import sympy as sp
+import itertools as it
 from collections import defaultdict
-from itertools import permutations
 
-import mwmath.combinations as cmb
+import sympy as sp
+
+from mwmath.combinations import perm
 
 Card = tuple[int, int]
 """ A card is a tuple with two entries
@@ -85,11 +86,11 @@ def count_hands_permutation(deck: DeckSpecification, hand_size: int) -> int:
     hands = set()
     deck_list = build_decklist(deck)
     deck_size = len(deck_list)
-    perm_count = cmb.perm(deck_size, hand_size)
+    perm_count = perm(deck_size, hand_size)
     last_report = 0.0
     permutation: tuple[tuple[int, int], ...]
     count: int
-    for count, permutation in enumerate(permutations(deck_list, hand_size)):
+    for count, permutation in enumerate(it.permutations(deck_list, hand_size)):
         percentage = count / perm_count
         if percentage > last_report + 10**-8:
             last_report = percentage

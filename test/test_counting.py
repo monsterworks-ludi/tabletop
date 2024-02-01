@@ -1,7 +1,7 @@
 from icecream import ic  # type: ignore
 
-from math.combinations import *
-from game import grizzled as gz
+from mwmath.combinations import fact, perm, comb, mult
+import game.grizzled as gz
 from game.grizzled import assault, gas, shelling
 
 ic.disable()

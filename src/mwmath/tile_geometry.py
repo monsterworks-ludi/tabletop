@@ -1,6 +1,5 @@
 import sympy as sp
 
-
 def interior_percentage(number_of_edges: int) -> sp.Rational:
     """
     Computes the percentage of a regular polygon closer to the center than to any point on the edge.

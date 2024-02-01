@@ -1,11 +1,11 @@
-import random
+import random as rnd
 
 def roll() -> int:
     """
 
     :return: rolls a king of tokyo die, 0 represents a symbol
     """
-    result = random.randrange(1, 7)
+    result = rnd.randrange(1, 7)
     return result if result <= 3 else 0
 
 

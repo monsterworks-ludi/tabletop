@@ -1,5 +1,4 @@
 import sympy as sp
-
 from icecream import ic  # type: ignore
 
 def mat_max(matrix):

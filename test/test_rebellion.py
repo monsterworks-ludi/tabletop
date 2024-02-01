@@ -1,13 +1,10 @@
-import sys
-import random
-
-from icecream import ic  # type: ignore
-import pytest
-
-import sympy as sp
-
 from collections import defaultdict
 
+import sympy as sp
+from icecream import ic  # type: ignore
+from pytest import mark
+
+import mwmath.monte_carlo as mc
 import mwmath.markov as mkv
 import game.rebellion as rb
 
@@ -16,12 +13,6 @@ ic.disable()
 
 def round_to(decimals):
     return lambda x: round(x, decimals)
-
-
-def set_seed() -> int:
-    seed = random.randrange(sys.maxsize)
-    random.seed(seed)
-    return seed
 
 
 class TestSimple:
@@ -41,7 +32,9 @@ class TestSimple:
         rounded_tenth = ((p**10)[:, 0]).applyfunc(lambda x: round(x, 5))
         # Example, p.115
         assert (
-            mkv.mat_max(rounded_tenth - sp.Matrix([[0.00016], [0.71417], [0.14283], [0.14283]]))
+            mkv.mat_max(
+                rounded_tenth - sp.Matrix([[0.00016], [0.71417], [0.14283], [0.14283]])
+            )
         ) < 0.000005
         # Example, p. 115
         assert mkv.to_infinity(p)[:, 0] == mkv.rat_mat([[0], [5], [1], [1]], 7)
@@ -67,7 +60,7 @@ class TestSimple:
         assert on == mkv.rat_mat([[12]], 7)
 
     @staticmethod
-    @pytest.mark.parametrize("power", [5])
+    @mark.parametrize("power", [5])
     def test_tie_y_markov_powers(power: int) -> None:
         q = mkv.rat_mat([[5]], 12, exact=False)
         r = mkv.rat_mat([[5], [1], [1]], 12, exact=False)
@@ -77,33 +70,39 @@ class TestSimple:
         assert mkv.mat_max(ppow - mkv.markov(sp.zeros(q.rows, q.cols), r * n)) < 0.05
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_tie_y_monte_carlo(trials) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         both_destroyed = 0
         tie_destroyed = 0
         y_destroyed = 0
         for _ in range(trials):
-            tie_hits = 0
-            y_hits = 0
-            while tie_hits == 0 and y_hits == 0:
-                if random.randrange(6) in {0, 1, 2}:
-                    y_hits += 1
-                if random.randrange(6) in {0}:
-                    tie_hits += 1
-            if tie_hits == 1 and y_hits == 1:
+            tie_damage = 0
+            y_damage = 0
+            while tie_damage == 0 and y_damage == 0:
+                if rb.black_die_result() in {rb.BLACK_HIT, rb.CRITICAL_HIT}:
+                    y_damage += 1
+                if rb.red_die_result in {rb.CRITICAL_HIT}:
+                    tie_damage += 1
+            if tie_damage == 1 and y_damage == 1:
                 both_destroyed += 1
-            elif tie_hits == 1:
+            elif tie_damage == 1:
                 tie_destroyed += 1
             else:
-                assert y_hits == 1
+                assert y_damage == 1
                 y_destroyed += 1
         # Example, p. 115
-        assert abs(y_destroyed / trials - 5 / 7) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            abs(y_destroyed / trials - 5 / 7) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
         # Example, p. 115
-        assert abs(both_destroyed / trials - 1 / 7) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            abs(both_destroyed / trials - 1 / 7) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
         # Example, p. 115
-        assert abs(tie_destroyed / trials - 1 / 7) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            abs(tie_destroyed / trials - 1 / 7) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
 
 
 class TestExciting:
@@ -680,11 +679,11 @@ class TestExciting:
         assert (sp.ones(1, n.rows) * n) == TestExciting.EXPECTED_EXCITING_ONER
 
     @staticmethod
-    @pytest.mark.parametrize(
+    @mark.parametrize(
         "initial_state, trials", [(i, 100_000) for i in range(1, 15)]
     )
     def test_exciting_battle_transitions_monte_carlo(initial_state, trials):
-        seed = set_seed()
+        seed = mc.set_seed()
 
         new_states = defaultdict(int)
         for _ in range(trials):
@@ -696,14 +695,16 @@ class TestExciting:
         expected_column = TestExciting.EXPECTED_EXCITING_P[:, initial_state - 1]
         ic(abs(column - expected_column))
         # Fig 5.7, p. 118
-        assert mkv.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            mkv.mat_max(column - expected_column) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize(
+    @mark.parametrize(
         "initial_state, trials", [(i, 100_000) for i in range(1, 11)]
     )
     def test_exciting_outcomes(initial_state, trials):
-        seed = set_seed()
+        seed = mc.set_seed()
 
         distribution = defaultdict(int)
         duration = 0
@@ -711,15 +712,19 @@ class TestExciting:
             terminal_state, rounds = rb.run_combat(initial_state)
             distribution[terminal_state] += 1
             duration += rounds
-        distribution = {key: count/trials for key, count in distribution.items()}
+        distribution = {key: count / trials for key, count in distribution.items()}
         ic(distribution)
-        duration = duration/trials
+        duration = duration / trials
         ic(duration)
         column = mkv.distribution_to_column(len(rb.BATTLE_STATES), distribution)
         ic(column)
         column = column[10:14, 0]
         ic(column)
         expected_column = TestExciting.EXPECTED_EXCITING_RN[:, initial_state - 1]
-        assert mkv.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            mkv.mat_max(column - expected_column) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"
         expected_duration = TestExciting.EXPECTED_EXCITING_ONER[:, initial_state - 1][0]
-        assert abs(duration - expected_duration) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert (
+            abs(duration - expected_duration) < 0.005
+        ), f"Bad Seed: {seed} and Trials: {trials}"

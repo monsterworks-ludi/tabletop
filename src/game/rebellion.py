@@ -1,7 +1,7 @@
-import random
-import sympy as sp
+import random as rnd
 from collections import defaultdict
 
+import sympy as sp
 from icecream import ic  # type: ignore
 
 import mwmath.markov as mkv
@@ -10,6 +10,8 @@ ic.disable()
 
 # region Exciting Space Battle
 
+# todo: set up consistent ordering of y_wing, corvette, destroyer
+# todo: doc strings
 # states start at 1 to match book and give corvette, destroyer, y_wing damage
 # it might have made more sense to do this as y_wing, corvette, destroyer
 CORVETTE_DAMAGE = 0
@@ -285,7 +287,7 @@ def exciting_transition_distribution(state):
 
 
 def black_die_result():
-    roll = random.randint(1, 6)
+    roll = rnd.randint(1, 6)
     if roll == 1 or roll == 2 or roll == 3:
         return MISS
     elif roll == 4 or roll == 5:
@@ -296,7 +298,7 @@ def black_die_result():
 
 
 def red_die_result():
-    roll = random.randint(1, 6)
+    roll = rnd.randint(1, 6)
     if roll == 1 or roll == 2 or roll == 3:
         return MISS
     elif roll == 4 or roll == 5:

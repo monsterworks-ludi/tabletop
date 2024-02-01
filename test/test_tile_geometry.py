@@ -1,8 +1,7 @@
 import sympy as sp
-
 from icecream import ic  # type: ignore
 
-from math import tile_geometry as tg
+import mwmath.tile_geometry as tg
 
 ic.disable()
 

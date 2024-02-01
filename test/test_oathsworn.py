@@ -1,23 +1,16 @@
-import sys
-import random
 import itertools as it
 
-import pytest
+from pytest import mark
 from icecream import ic  # type: ignore
 
-from mwmath.combinations import comb, mult
+import mwmath.monte_carlo as mc
 import game.oathsworn as os
+from mwmath.combinations import comb, mult
 
 ic.disable()
 
 # setting this False will skip tests with runtimes over 15 seconds
 run_long_tests: bool = False
-
-
-def set_seed() -> int:
-    seed = random.randrange(sys.maxsize)
-    random.seed(seed)
-    return seed
 
 
 class TestOathsworn:
@@ -170,35 +163,35 @@ class TestOathsworn:
     # region Rounding
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_dice_hit_rounding(k: int) -> None:
         expected = TestOathsworn.Expected_Dice_Hit_Probabilities
         printed = TestOathsworn.Printed_Dice_Hit_Probabilities
         assert abs(round(expected[k], 2) - printed[k]) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_card_hit_rounding(k: int) -> None:
         expected = TestOathsworn.Expected_Card_Hit_Probabilities
         printed = TestOathsworn.Printed_Card_Hit_Probabilities
         assert abs(round(expected[k], 2) - printed[k]) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_white_card_damage_rounding(k: int) -> None:
         expected = TestOathsworn.Expected_White_Card_Damage
         printed = TestOathsworn.Printed_White_Card_Damage
         assert abs(round(expected[k], 2) - printed[k]) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_big_white_card_damage_rounding(k: int) -> None:
         expected = TestOathsworn.Expected_Big_White_Card_Damage
         printed = TestOathsworn.Printed_Big_White_Card_Damage
         assert abs(round(expected[k], 2) - printed[k]) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_white_dice_damage_rounding(k: int) -> None:
         expected = TestOathsworn.Expected_White_Dice_Damage
         printed = TestOathsworn.Printed_White_Dice_Damage
@@ -209,7 +202,7 @@ class TestOathsworn:
     # region Card Hit
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def test_card_hit_formula(k: int) -> None:
         hit_probability = (
             comb(6, 0) * comb(12, k) + comb(6, 1) * comb(12, k - 1)
@@ -221,7 +214,7 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11 if run_long_tests else 7))
+    @mark.parametrize("k", range(11 if run_long_tests else 7))
     def test_card_hit_exhaustive(k: int) -> None:
         """
         Runtimes over 5 min for k = 8, over 1 hour for k = 9, over 11 hours for k = 10.
@@ -239,9 +232,9 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
+    @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_card_hit_monte_carlo(trials: int, k: int) -> None:
-        seed = set_seed
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             deck = os.shuffled(os.WHITE_DECK)
@@ -258,7 +251,7 @@ class TestOathsworn:
     # region Dice Hit
 
     @staticmethod
-    @pytest.mark.parametrize("n", range(11))
+    @mark.parametrize("n", range(11))
     def test_dice_hit_formula(n: int) -> None:
         hit_probability = comb(n, 0) * (2 / 6) ** 0 * (4 / 6) ** n + comb(n, 1) * (
             2 / 6
@@ -275,9 +268,9 @@ class TestOathsworn:
         return
 
     @staticmethod
-    @pytest.mark.parametrize("trials, n", [(100_000, n) for n in range(11)])
+    @mark.parametrize("trials, n", [(100_000, n) for n in range(11)])
     def test_dice_hit_monte_carlo(trials, n) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             if os.hit_rolling(n, os.WHITE_DIE):
@@ -298,7 +291,7 @@ class TestOathsworn:
         return
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11 if run_long_tests else 6))
+    @mark.parametrize("k", range(11 if run_long_tests else 6))
     def big_test_white_deck_damage_exhaustive(k: int):
         """
         Runtimes over 2 hours for k ≥ 6
@@ -319,9 +312,9 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
+    @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_white_deck_damage_monte_carlo(trials: int, k: int):
-        seed = set_seed
+        seed = mc.set_seed()
         damage = 0
         for _ in range(trials):
             deck = os.shuffled(os.WHITE_DECK)
@@ -341,7 +334,7 @@ class TestOathsworn:
         return
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11))
+    @mark.parametrize("k", range(11))
     def big_test_big_white_deck_damage_exhaustive(k: int):
         """
         Even if k = 0, there are roughly 6 * 10^28 shuffles to exam,
@@ -363,9 +356,9 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
+    @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_big_white_deck_damage_monte_carlo(trials: int, k: int):
-        seed = set_seed()
+        seed = mc.set_seed()
         damage = 0
         for _ in range(trials):
             deck = os.shuffled(os.BIG_WHITE_DECK)
@@ -381,7 +374,7 @@ class TestOathsworn:
     # region White Dice Damage
 
     @staticmethod
-    @pytest.mark.parametrize("n", range(11))
+    @mark.parametrize("n", range(11))
     def test_white_dice_damage_formula(n: int) -> None:
         damage = 0.0
         for blanks, ones, twos in it.product(range(2), range(n + 1), range(n + 1)):
@@ -406,15 +399,15 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("n", range(11))
+    @mark.parametrize("n", range(11))
     def test_white_dice_damage_exhaustive(n: int) -> None:
         """I'm not sure how to do this since it is possible that we roll an unending sequence of explosions."""
         return
 
     @staticmethod
-    @pytest.mark.parametrize("trials, n", [(500_000, n) for n in range(11)])
+    @mark.parametrize("trials, n", [(500_000, n) for n in range(11)])
     def test_white_dice_damage_monte_carlo(trials: int, n: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         damage = 0
         for _ in range(trials):
             damage += os.damage_rolling(n, os.WHITE_DIE)

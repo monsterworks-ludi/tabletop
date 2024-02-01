@@ -1,6 +1,6 @@
-from math import tile_counter as tc
-
 from icecream import ic  # type: ignore
+
+import mwmath.tile_counter as tc
 
 ic.disable()
 

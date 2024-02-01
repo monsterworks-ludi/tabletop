@@ -1,7 +1,7 @@
-from sympy import factorial as spfactorial
+# todo: should change this to sp.factorial, sp.nC, sp.nP, sp., sp.multinomial_coefficients
+import sympy as sp
 from sympy.functions.combinatorial.numbers import nC as spnc
 from sympy.functions.combinatorial.numbers import nP as spnp
-from sympy import multinomial_coefficients as spmc
 
 def fact(n: int) -> int:
     """
@@ -9,7 +9,7 @@ def fact(n: int) -> int:
     :param n: number of objects being chosen from
     :return: n!
     """
-    return int(spfactorial(n))
+    return int(sp.factorial(n))
 
 def perm(n: int, k: int) -> int:
     """
@@ -45,4 +45,4 @@ def mult(params: tuple[int, ...]) -> int:
     n = sum(params)
     if any(param < 0 for param in params):
         return 0
-    return spmc(m, n)[tuple(params)]
+    return sp.multinomial_coefficients(m, n)[tuple(params)]

@@ -1,8 +1,8 @@
-import random
 import itertools as it
-import sympy as sp
+import random as rnd
 from typing import NamedTuple
 
+import sympy as sp
 from icecream import ic  # type: ignore
 
 ic.disable()
@@ -36,7 +36,7 @@ def shuffled(deck: Deck) -> Deck:
     :return: a shuffled deck with the same cards as deck
     """
     unlocked_deck: list[Card] = list(deck)
-    random.shuffle(unlocked_deck)
+    rnd.shuffle(unlocked_deck)
     return tuple(unlocked_deck)
 
 
@@ -209,7 +209,7 @@ def hit_rolling(roll_count: int, die: Die) -> bool:
     """
     blanks = 0
     for _ in it.count():
-        face = random.choice(die)
+        face = rnd.choice(die)
         roll_count -= 1
         if face.damage == 0:
             blanks += 1
@@ -231,7 +231,7 @@ def damage_rolling(number_in_initial_roll: int, die: Die) -> int:
     dice_rolled = 0
     rolls_remaining = number_in_initial_roll
     while rolls_remaining > 0:
-        face: Face = random.choice(die)
+        face: Face = rnd.choice(die)
         dice_rolled += 1
         rolls_remaining -= 1
         if dice_rolled <= number_in_initial_roll and face.damage == 0:

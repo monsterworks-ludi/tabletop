@@ -1,4 +1,4 @@
-from itertools import combinations
+import itertools as it
 from collections import defaultdict
 
 from icecream import ic  # type: ignore
@@ -128,7 +128,7 @@ if __name__ == "__main__":
 
     VALUES: defaultdict[int, int] = defaultdict(int)
     HANDS = 0
-    for HAND in combinations(LEVEL_ONE_DECK, 2):
+    for HAND in it.combinations(LEVEL_ONE_DECK, 2):
         # print(best_value(hand), hand)
         VALUES[best_value(HAND)] += 1
         HANDS += 1

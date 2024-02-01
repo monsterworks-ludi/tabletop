@@ -1,25 +1,22 @@
-import sys
-import random
 import itertools as it
+# todo: shift random inside kt and zc
+# todo: check that we set_seed on any test involving probabilty (are all of these "monte_carlo"s?)
+import random
 
-import pytest
+from pytest import mark
 from icecream import ic  # type: ignore
 
-from math import combinations as cmb
-from game import king_of_tokyo as kt, zombicide as zc
-
-
-def set_seed() -> int:
-    seed = random.randrange(sys.maxsize)
-    random.seed(seed)
-    return seed
+import mwmath.monte_carlo as mc
+import game.king_of_tokyo as kt
+import game.zombicide as zc
+from mwmath.combinations import mult, comb
 
 
 class TestZombicide:
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_one_hit_with_shortbow_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             hits = zc.hit_on_a(3)
@@ -31,9 +28,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_two_hits_with_sword_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             hits = zc.hit_on_a(4) + zc.hit_on_a(4)
@@ -45,9 +42,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_hit_with_sword_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             hits = zc.hit_on_a(4) + zc.hit_on_a(4)
@@ -59,9 +56,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_two_hit_with_repeating_crossbow_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             hits = zc.hit_on_a(5) + zc.hit_on_a(5) + zc.hit_on_a(5)
@@ -73,9 +70,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_mean_with_repeating_crossbow_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             hits += zc.hit_on_a(5) + zc.hit_on_a(5) + zc.hit_on_a(5)
@@ -83,9 +80,9 @@ class TestZombicide:
         assert abs(hits / trials - 1) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_exploding_die_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             hits += zc.hit_on_a(5, critical=6)
@@ -95,9 +92,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_mean_with_great_sword_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             hits += (
@@ -113,9 +110,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_mean_with_sword_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             hits += zc.hit_on_a(3)
@@ -125,9 +122,9 @@ class TestZombicide:
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_mean_with_hand_crossbow_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         hits = 0
         for _ in range(trials):
             hits += zc.hit_on_a(3) + zc.hit_on_a(3)
@@ -152,7 +149,7 @@ class TestKingOfTokyo:
     @staticmethod
     def test_formula() -> None:
         def scoreline(v, i, j, k):
-            return v * cmb.mult((i, j, k)) * (1 / 6) ** i * (1 / 6) ** j * (4 / 6) ** k
+            return v * mult((i, j, k)) * (1 / 6) ** i * (1 / 6) ** j * (4 / 6) ** k
 
         # Table 5.1, p. 104
         assert (
@@ -182,9 +179,9 @@ class TestKingOfTokyo:
         assert abs(scores / trials - 159 / 216) < 0.0005
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_scores_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         scores = 0
         for _ in range(trials):
             dice = [1, 1, 3, kt.roll(), kt.roll(), kt.roll()]
@@ -207,8 +204,8 @@ class TestBlackOrchestra:
         assert (
             abs(
                 (
-                    cmb.comb(7, 0) * (1 / 6) ** 0 * (5 / 6) ** 7
-                    + cmb.comb(7, 1) * (1 / 6) ** 1 * (5 / 6) ** 6
+                    comb(7, 0) * (1 / 6) ** 0 * (5 / 6) ** 7
+                    + comb(7, 1) * (1 / 6) ** 1 * (5 / 6) ** 6
                 )
                 - 15625 / 23328
             )
@@ -230,9 +227,9 @@ class TestBlackOrchestra:
         assert abs(successes / trials - 15625 / 23328) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_detection_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             eagles = 0
@@ -251,7 +248,7 @@ class TestBlackOrchestra:
     def test_plot_success_formula() -> None:
         total = 0.0
         for k in range(4, 8):
-            total += cmb.comb(7, k) * (2 / 6) ** k * (4 / 6) ** (7 - k)
+            total += comb(7, k) * (2 / 6) ** k * (4 / 6) ** (7 - k)
         # Formula, p. 105
         assert abs(total - 379 / 2187) < 10**-15
         assert abs(379 / 2187 - 0.17) < 0.005
@@ -270,9 +267,9 @@ class TestBlackOrchestra:
         assert abs(successes / trials - 379 / 2187) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_plot_success_monte_carlo(trials) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             targets = 0
@@ -292,7 +289,7 @@ class TestBlackOrchestra:
         # Formula, p. 105
         assert (
             abs(
-                cmb.mult((1, 5, 1)) * (1 / 6) ** 1 * (2 / 6) ** 5 * (3 / 6) ** 1
+                mult((1, 5, 1)) * (1 / 6) ** 1 * (2 / 6) ** 5 * (3 / 6) ** 1
                 - 7 / 486
             )
             < 10**-15
@@ -315,9 +312,9 @@ class TestBlackOrchestra:
         assert abs(successes / trials - 7 / 486) < 0.005
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_one_eagle_five_targets_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             targets = 0
@@ -341,7 +338,7 @@ class TestBlackOrchestra:
         for i, j, k in it.product(range(2), range(4, 8), range(8)):
             if i + j + k == 7:
                 value += (
-                    cmb.mult((i, j, k)) * (1 / 6) ** i * (2 / 6) ** j * (3 / 6) ** k
+                    mult((i, j, k)) * (1 / 6) ** i * (2 / 6) ** j * (3 / 6) ** k
                 )
         # Formula, p. 105
         assert abs(value - 110 / 729) < 10**-15
@@ -362,9 +359,9 @@ class TestBlackOrchestra:
         assert abs(successes / trials - 110 / 729) < 10**-15
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_success_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         for _ in range(trials):
             eagles = 0
@@ -387,7 +384,7 @@ class TestFlammeRouge:
     @staticmethod
     def test_one_nine_formula() -> None:
         # Formula, p. 106
-        assert abs(cmb.comb(2, 1) * cmb.comb(4, 2) / cmb.comb(6, 3) - 3 / 5) < 10**-15
+        assert abs(comb(2, 1) * comb(4, 2) / comb(6, 3) - 3 / 5) < 10**-15
         assert abs(3 / 5 - 0.60) < 0.005
 
     @staticmethod
@@ -411,9 +408,9 @@ class TestFlammeRouge:
         assert abs(3 / 5 - 0.60) < 0.05
 
     @staticmethod
-    @pytest.mark.parametrize("trials", [100_000])
+    @mark.parametrize("trials", [100_000])
     def test_one_nine_monte_carlo(trials: int) -> None:
-        seed = set_seed()
+        seed = mc.set_seed()
         successes = 0
         deck = [(2, 0), (2, 1), (4, 0), (5, 0), (9, 0), (9, 1)]
         for _ in range(trials):

@@ -1,5 +1,4 @@
-import random
-
+import random as rnd
 from typing import Optional
 
 
@@ -11,7 +10,7 @@ def hit_on_a(target: int, *, critical: Optional[int] = None) -> int:
     :return: the number of hits obtained from the roll
     """
     hits = 0
-    roll = random.randrange(1, 7)
+    roll = rnd.randrange(1, 7)
     if roll >= target:
         hits += 1
     if critical and roll >= critical:

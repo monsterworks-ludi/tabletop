@@ -1,6 +1,6 @@
 from icecream import ic  # type: ignore
 
-from math import adjacency_matrices as am
+import mwmath.adjacency_matrices as am
 
 ic.disable()
 

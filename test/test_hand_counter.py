@@ -1,5 +1,5 @@
 from icecream import ic  # type: ignore
-from math import hand_counter as hc
+import mwmath.hand_counter as hc
 
 ic.disable()
 

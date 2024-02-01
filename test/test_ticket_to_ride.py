@@ -1,10 +1,10 @@
-import sympy as sp
 import itertools as it
 
+import sympy as sp
 from icecream import ic  # type: ignore
 
-from math import adjacency_matrices as am
-from game import ticket_to_ride as ttr
+import mwmath.adjacency_matrices as am
+import game.ticket_to_ride as ttr
 from game.ticket_to_ride import x, v, b, g, p, r, t, w, y
 
 ic.disable()

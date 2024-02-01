@@ -1,5 +1,4 @@
-from itertools import product, chain
-
+import itertools as it
 from typing import Iterable, Callable, Generator
 
 Tile = tuple[int, ...]
@@ -13,7 +12,7 @@ def all_fixed_tiles(number_of_edges: int, number_of_number_of_edge_types: int) -
     :param number_of_number_of_edge_types: number of possible edge types on each tile
     :return: all possible fixed tiles
     """
-    return set(product(range(number_of_number_of_edge_types), repeat=number_of_edges))
+    return set(it.product(range(number_of_number_of_edge_types), repeat=number_of_edges))
 
 
 def tile_orbit(tile: Tile, actions: Iterable) -> set[Tile]:
@@ -65,7 +64,7 @@ def dihedral_group(number_of_edges: int) -> Generator:
     :param number_of_edges: the number of edges of the polygons being transformed
     :return: a generator listing all reflections and rotations
     """
-    return (action for action in chain(
+    return (action for action in it.chain(
         (tile_rotation(zero_target) for zero_target in range(number_of_edges)),
         (tile_reflection(zero_target) for zero_target in range(number_of_edges))))
 
