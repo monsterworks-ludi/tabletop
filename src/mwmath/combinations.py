@@ -1,4 +1,3 @@
-# todo: should change this to sp.factorial, sp.nC, sp.nP, sp., sp.multinomial_coefficients
 import sympy as sp
 from sympy.functions.combinatorial.numbers import nC as spnc
 from sympy.functions.combinatorial.numbers import nP as spnp

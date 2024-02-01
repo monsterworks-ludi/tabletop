@@ -1,6 +1,5 @@
 import itertools as it
 # todo: shift random inside kt and zc
-# todo: check that we set_seed on any test involving probabilty (are all of these "monte_carlo"s?)
 import random
 
 from pytest import mark
