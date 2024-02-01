@@ -5,7 +5,6 @@ from icecream import ic  # type: ignore
 IC_DEPTH = 0
 
 
-# todo: this won't work with parametrized pytests
 def debug(func):
     """
     toggles ic printing for the wrapped function
