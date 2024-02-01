@@ -304,7 +304,6 @@ class TestOathsworn:
         for shuffle in it.permutations(os.WHITE_DECK, k + max_exploding_cards):
             trials += 1
             damage += os.damage_drawing(k, shuffle)
-        print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k])
@@ -346,9 +345,7 @@ class TestOathsworn:
         assert max_exploding_cards == 15
         for shuffle in it.permutations(os.BIG_WHITE_DECK, k + max_exploding_cards):
             trials += 1
-            print(trials)
             damage += os.damage_drawing(k, shuffle)
-        print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])

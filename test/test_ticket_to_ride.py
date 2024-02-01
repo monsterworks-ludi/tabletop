@@ -362,7 +362,6 @@ class TestFull:
 
     @staticmethod
     def test_six_hop_route() -> None:
-        ic.enable()
         montreal_los_angeles_route = sp.Integer(0)
         route_matrix = sp.eye(len(ttr.CITIES))
         power = 0
@@ -375,7 +374,6 @@ class TestFull:
                 break
         # Comment on p. 78
         assert power == 6
-        print(montreal_los_angeles_route.expand().as_expr().coeff(v, 55))
         assert (
             montreal_los_angeles_route.expand()
             .as_expr()
@@ -395,7 +393,6 @@ class TestFull:
                 * ttr.los_angeles
             )
         )
-        ic.disable()
 
     # takes about 108 seconds on my computer
     @staticmethod
