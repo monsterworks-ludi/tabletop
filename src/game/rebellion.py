@@ -4,71 +4,9 @@ from collections import defaultdict
 
 from icecream import ic  # type: ignore
 
+import mwmath.markov as mkv
+
 ic.disable()
-
-# region Basic Markov Functions
-
-def mat_max(matrix):
-    return max(abs(matrix.row(i)[j]) for i in range(matrix.rows) for j in range(matrix.cols))
-
-
-def rat_mat(mat: list[list[int]], q: int, *, exact=True) -> sp.Matrix:
-    if exact:
-        return sp.Rational(1, q) * sp.Matrix(mat)
-    else:
-        return 1 / q * sp.Matrix(mat)
-
-
-def transition_matrix(states, transition_distribution):
-    return sp.Matrix(
-        [
-            [col[row] if row in col else 0 for row in range(1, 1 + states)]
-            for col in [transition_distribution(i) for i in range(1, 1 + states)]
-        ]
-    ).transpose()
-
-
-def markov(q, r) -> sp.Matrix:
-    if not q.cols == r.cols:
-        raise sp.ShapeError(
-            f"The matrices have incompatible number of cols ({q.cols} and {r.cols})"
-        )
-    if not q.is_square:
-        raise sp.ShapeError(f"The matrix q is not square ({q.rows} x {q.cols})")
-
-    qz = q.row_join(sp.zeros(1, r.rows))
-    ri = r.row_join(sp.eye(r.rows))
-
-    p = qz.col_join(ri)
-
-    return p
-
-
-def markov_n(q: sp.Matrix) -> sp.Matrix:
-    return (sp.eye(q.cols) - q).inv()
-
-
-def to_infinity(mat: sp.Matrix) -> sp.Matrix:
-    and_beyond = sp.Symbol("and_beyond")
-    matoo = (mat**and_beyond).applyfunc(
-        lambda expr: sp.limit(expr, and_beyond, sp.oo)
-    )
-    return matoo
-
-
-def distribution_to_column(state_count, distribution):
-    prob_list = []
-    for state in range(1, state_count + 1):
-        prob_list.append([distribution[state]] if state in distribution else [0])
-    ic(prob_list)
-    return sp.Matrix(prob_list)
-
-
-def is_distribution(dist):
-    return abs(sum(value for value in dist.values()) - 1) < 10**-15
-
-
-# endregion
 
 # region Exciting Space Battle
 
@@ -159,7 +97,7 @@ Y_WING_HIT_DISTRIBUTION = {
     0: ONE_HALF,  # M
     1: ONE_HALF,  # H
 }
-assert is_distribution(Y_WING_HIT_DISTRIBUTION)
+assert mkv.is_distribution(Y_WING_HIT_DISTRIBUTION)
 
 # corvette rolls black (1/6) and red (1/2)
 # Perhaps we should use the BRCM encoding here
@@ -168,7 +106,7 @@ CORVETTE_HIT_DISTRIBUTION = {
     1: ONE_SIXTH * ONE_HALF + FIVE_SIXTH * ONE_HALF,  # HM, MH
     2: ONE_SIXTH * ONE_HALF,  # HH
 }
-assert is_distribution(CORVETTE_HIT_DISTRIBUTION)
+assert mkv.is_distribution(CORVETTE_HIT_DISTRIBUTION)
 
 # destroyer rolls black, red, red
 # Perhaps we should use the BRCM encoding here
@@ -202,7 +140,7 @@ EMPIRE_HIT_DISTRIBUTION = {
     + ONE_THIRD * ONE_THIRD * ONE_SIXTH,  # BCR, BRC
     (1, 2, 0): ONE_THIRD * ONE_THIRD * ONE_THIRD,  # BRR
 }
-assert is_distribution(EMPIRE_HIT_DISTRIBUTION)
+assert mkv.is_distribution(EMPIRE_HIT_DISTRIBUTION)
 
 
 # todo: hits should really be a hit vector BRCM
@@ -266,7 +204,7 @@ def merge_rebel_hits_distributions(corvette_distribution, y_wing_distribution):
     for cor_hits, cor_prob in corvette_distribution.items():
         for y_hits, y_prob in y_wing_distribution.items():
             merged_distribution[cor_hits + y_hits] += cor_prob * y_prob
-    assert is_distribution(merged_distribution)
+    assert mkv.is_distribution(merged_distribution)
     return merged_distribution
 
 
@@ -281,14 +219,14 @@ def merge_damage_distributions(rebel_damage_distribution, empire_damage_distribu
             merged_damage_distribution[(rebel_dam[0], emp_dam, rebel_dam[1])] += (
                 rebel_prob * emp_prob
             )
-    assert is_distribution(merged_damage_distribution)
+    assert mkv.is_distribution(merged_damage_distribution)
     ic(merged_damage_distribution)
 
     state_distribution = defaultdict(int)
     for damage, prob in merged_damage_distribution.items():
         state_distribution[state_for_damage(damage)] += prob
 
-    assert is_distribution(state_distribution)
+    assert mkv.is_distribution(state_distribution)
     return state_distribution
 
 
@@ -325,19 +263,19 @@ def exciting_transition_distribution(state):
             corvette_damage, y_wing_damage, hits
         )
         rebel_damage_distribution[(new_corv_damage, new_y_wing_damage)] += prob
-    assert is_distribution(rebel_damage_distribution)
+    assert mkv.is_distribution(rebel_damage_distribution)
 
     empire_damage_distribution = defaultdict(int)
     for hits, prob in rebel_hit_distribution.items():
         new_damage = apply_hits_to_destroyer(destroyer_damage, hits)
         empire_damage_distribution[new_damage] += prob
-    assert is_distribution(empire_damage_distribution)
+    assert mkv.is_distribution(empire_damage_distribution)
 
     state_distribution = merge_damage_distributions(
         rebel_damage_distribution, empire_damage_distribution
     )
 
-    assert is_distribution(state_distribution)
+    assert mkv.is_distribution(state_distribution)
     return state_distribution
 
 

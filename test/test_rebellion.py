@@ -8,7 +8,8 @@ import sympy as sp
 
 from collections import defaultdict
 
-from game import rebellion as rb
+import mwmath.markov as mkv
+import game.rebellion as rb
 
 ic.disable()
 
@@ -24,7 +25,7 @@ def set_seed() -> int:
 
 
 class TestSimple:
-    TIE_Y_MAT = rb.rat_mat(
+    TIE_Y_MAT = mkv.rat_mat(
         [[5, 0, 0, 0], [5, 12, 0, 0], [1, 0, 12, 0], [1, 0, 0, 12]], 12
     )
 
@@ -32,18 +33,18 @@ class TestSimple:
     def test_tie_y_powers() -> None:
         p = TestSimple.TIE_Y_MAT
         # Example, p. 114
-        assert p**2 == rb.rat_mat(
+        assert p**2 == mkv.rat_mat(
             [[25, 0, 0, 0], [85, 144, 0, 0], [17, 0, 144, 0], [17, 0, 0, 144]], 144
         )
         # Example, p. 115
-        assert (p**2)[:, 0] == rb.rat_mat([[25], [85], [17], [17]], 144)
+        assert (p**2)[:, 0] == mkv.rat_mat([[25], [85], [17], [17]], 144)
         rounded_tenth = ((p**10)[:, 0]).applyfunc(lambda x: round(x, 5))
         # Example, p.115
         assert (
-            rb.mat_max(rounded_tenth - sp.Matrix([[0.00016], [0.71417], [0.14283], [0.14283]]))
+            mkv.mat_max(rounded_tenth - sp.Matrix([[0.00016], [0.71417], [0.14283], [0.14283]]))
         ) < 0.000005
         # Example, p. 115
-        assert rb.to_infinity(p)[:, 0] == rb.rat_mat([[0], [5], [1], [1]], 7)
+        assert mkv.to_infinity(p)[:, 0] == mkv.rat_mat([[0], [5], [1], [1]], 7)
 
     @staticmethod
     def test_tie_y_mean() -> None:
@@ -55,25 +56,25 @@ class TestSimple:
 
     @staticmethod
     def test_tie_y_formula() -> None:
-        q = rb.rat_mat([[5]], 12)
-        r = rb.rat_mat([[5], [1], [1]], 12)
-        n = rb.markov_n(q)
+        q = mkv.rat_mat([[5]], 12)
+        r = mkv.rat_mat([[5], [1], [1]], 12)
+        n = mkv.markov_n(q)
         rn = r * n
         on = sp.ones(1, n.rows) * n
         # Example, p. 116
-        assert rn == rb.rat_mat([[5], [1], [1]], 7)
+        assert rn == mkv.rat_mat([[5], [1], [1]], 7)
         # Example, p. 116
-        assert on == rb.rat_mat([[12]], 7)
+        assert on == mkv.rat_mat([[12]], 7)
 
     @staticmethod
     @pytest.mark.parametrize("power", [5])
     def test_tie_y_markov_powers(power: int) -> None:
-        q = rb.rat_mat([[5]], 12, exact=False)
-        r = rb.rat_mat([[5], [1], [1]], 12, exact=False)
-        p = rb.markov(q, r)
-        n = rb.markov_n(q)
+        q = mkv.rat_mat([[5]], 12, exact=False)
+        r = mkv.rat_mat([[5], [1], [1]], 12, exact=False)
+        p = mkv.markov(q, r)
+        n = mkv.markov_n(q)
         ppow = p**power
-        assert rb.mat_max(ppow - rb.markov(sp.zeros(q.rows, q.cols), r * n)) < 0.05
+        assert mkv.mat_max(ppow - mkv.markov(sp.zeros(q.rows, q.cols), r * n)) < 0.05
 
     @staticmethod
     @pytest.mark.parametrize("trials", [100_000])
@@ -646,31 +647,31 @@ class TestExciting:
         p = TestExciting.EXPECTED_EXCITING_P.applyfunc(round_to(2))
         rounded_p = TestExciting.EXPECTED_EXCITING_ROUNDED_P
         # Fig 5.7, p. 118
-        assert rb.mat_max(p - rounded_p) < 0.005
+        assert mkv.mat_max(p - rounded_p) < 0.005
 
         n = TestExciting.EXPECTED_EXCITING_N.applyfunc(round_to(2))
         rounded_n = TestExciting.EXPECTED_EXCITING_ROUNDED_N
         # Example, p. 119
-        assert rb.mat_max(n - rounded_n) < 0.005
+        assert mkv.mat_max(n - rounded_n) < 0.005
 
         rn = TestExciting.EXPECTED_EXCITING_RN.applyfunc(round_to(2))
         rounded_rn = TestExciting.EXPECTED_EXCITING_ROUNDED_RN
         # Example, p. 119
-        assert rb.mat_max(rn - rounded_rn) < 0.005
+        assert mkv.mat_max(rn - rounded_rn) < 0.005
 
         oner = TestExciting.EXPECTED_EXCITING_ONER.applyfunc(round_to(1))
         rounded_oner = TestExciting.EXPECTED_EXCITING_ROUNDED_ONER
         # Example, p. 119
-        assert rb.mat_max(oner - rounded_oner) < 0.005
+        assert mkv.mat_max(oner - rounded_oner) < 0.005
 
     @staticmethod
     def test_exciting_battle_markov():
-        p = rb.transition_matrix(14, rb.exciting_transition_distribution)
+        p = mkv.transition_matrix(14, rb.exciting_transition_distribution)
         # Fig 5.7, p. 118
         assert p == TestExciting.EXPECTED_EXCITING_P
         q = p[0:10, 0:10]
         r = p[10:14, 0:10]
-        n = rb.markov_n(q)
+        n = mkv.markov_n(q)
         # Example, p. 119
         assert n == TestExciting.EXPECTED_EXCITING_N
         # Example, p. 119
@@ -690,12 +691,12 @@ class TestExciting:
             new_state = rb.combat_transition(initial_state)
             new_states[new_state] += 1
         distribution = {key: value / trials for key, value in new_states.items()}
-        assert rb.is_distribution(distribution)
-        column = rb.distribution_to_column(len(rb.BATTLE_STATES), distribution)
+        assert mkv.is_distribution(distribution)
+        column = mkv.distribution_to_column(len(rb.BATTLE_STATES), distribution)
         expected_column = TestExciting.EXPECTED_EXCITING_P[:, initial_state - 1]
         ic(abs(column - expected_column))
         # Fig 5.7, p. 118
-        assert rb.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert mkv.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
     @pytest.mark.parametrize(
@@ -714,11 +715,11 @@ class TestExciting:
         ic(distribution)
         duration = duration/trials
         ic(duration)
-        column = rb.distribution_to_column(len(rb.BATTLE_STATES), distribution)
+        column = mkv.distribution_to_column(len(rb.BATTLE_STATES), distribution)
         ic(column)
         column = column[10:14, 0]
         ic(column)
         expected_column = TestExciting.EXPECTED_EXCITING_RN[:, initial_state - 1]
-        assert rb.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
+        assert mkv.mat_max(column - expected_column) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
         expected_duration = TestExciting.EXPECTED_EXCITING_ONER[:, initial_state - 1][0]
         assert abs(duration - expected_duration) < 0.005, f"Bad Seed: {seed} and Trials: {trials}"
