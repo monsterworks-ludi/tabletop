@@ -5,11 +5,12 @@ import itertools as it
 import pytest
 from icecream import ic  # type: ignore
 
-from math.combinations import comb, mult
-from game import oathsworn as os
+from mwmath.combinations import comb, mult
+import game.oathsworn as os
 
 ic.disable()
-# setting this False will skip tests with runtimes over 5 minutes
+
+# setting this False will skip tests with runtimes over 15 seconds
 run_long_tests: bool = False
 
 
@@ -220,7 +221,7 @@ class TestOathsworn:
         )
 
     @staticmethod
-    @pytest.mark.parametrize("k", range(11 if run_long_tests else 8))
+    @pytest.mark.parametrize("k", range(11 if run_long_tests else 7))
     def test_card_hit_exhaustive(k: int) -> None:
         """
         Runtimes over 5 min for k = 8, over 1 hour for k = 9, over 11 hours for k = 10.
@@ -229,7 +230,7 @@ class TestOathsworn:
         hits = 0
         for hand in it.permutations(os.WHITE_DECK, k):
             trials += 1
-            if os.hit_drawing(k, list(hand)):
+            if os.hit_drawing(k, hand):
                 hits += 1
         # Table 5.3, p. 109
         assert (
@@ -309,7 +310,7 @@ class TestOathsworn:
         )
         for shuffle in it.permutations(os.WHITE_DECK, k + max_exploding_cards):
             trials += 1
-            damage += os.damage_drawing(k, list(shuffle))
+            damage += os.damage_drawing(k, shuffle)
         print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
         assert (
@@ -353,7 +354,7 @@ class TestOathsworn:
         for shuffle in it.permutations(os.BIG_WHITE_DECK, k + max_exploding_cards):
             trials += 1
             print(trials)
-            damage += os.damage_drawing(k, list(shuffle))
+            damage += os.damage_drawing(k, shuffle)
         print(f"{k}, {damage}, {trials}")
         # Table 5.4, p. 110
         assert (
@@ -424,3 +425,6 @@ class TestOathsworn:
         return
 
     # endregion
+
+if __name__ == "__main__":
+    ...

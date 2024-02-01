@@ -7,6 +7,7 @@ from icecream import ic  # type: ignore
 
 ic.disable()
 
+
 class Card(NamedTuple):
     damage: int
     exploding: bool = False
@@ -24,7 +25,7 @@ def copy_card(damage: int, exploding: bool = False, *, count: int = 1) -> set[Ca
     return {Card(damage, exploding, i) for i in range(count)}
 
 
-Deck = list[Card]
+Deck = tuple[Card, ...]
 """ Decks are lists, so they can be shuffled. """
 
 
@@ -34,12 +35,12 @@ def shuffled(deck: Deck) -> Deck:
     :param deck: the deck to be shuffled
     :return: a shuffled deck with the same cards as deck
     """
-    deck = deck.copy()
-    random.shuffle(deck)
-    return deck
+    unlocked_deck: list[Card] = list(deck)
+    random.shuffle(unlocked_deck)
+    return tuple(unlocked_deck)
 
 
-WHITE_DECK: Deck = [
+WHITE_DECK: Deck = tuple(
     card
     for card in it.chain(
         copy_card(0, count=6),
@@ -47,9 +48,9 @@ WHITE_DECK: Deck = [
         copy_card(2, count=3),
         copy_card(2, True, count=3),
     )
-]
+)
 
-BIG_WHITE_DECK: Deck = [
+BIG_WHITE_DECK: Deck = tuple(
     card
     for card in it.chain(
         copy_card(0, count=30),
@@ -57,9 +58,9 @@ BIG_WHITE_DECK: Deck = [
         copy_card(2, count=15),
         copy_card(2, True, count=15),
     )
-]
+)
 
-YELLOW_DECK: Deck = [
+YELLOW_DECK: Deck = tuple(
     card
     for card in it.chain(
         copy_card(0, count=6),
@@ -67,9 +68,9 @@ YELLOW_DECK: Deck = [
         copy_card(3, count=3),
         copy_card(4, True, count=3),
     )
-]
+)
 
-RED_DECK: Deck = [
+RED_DECK: Deck = tuple(
     card
     for card in it.chain(
         copy_card(0, count=6),
@@ -77,9 +78,9 @@ RED_DECK: Deck = [
         copy_card(4, count=3),
         copy_card(4, True, count=3),
     )
-]
+)
 
-BLACK_DECK: Deck = [
+BLACK_DECK: Deck = tuple(
     card
     for card in it.chain(
         copy_card(0, count=6),
@@ -87,48 +88,54 @@ BLACK_DECK: Deck = [
         copy_card(5, count=3),
         copy_card(5, True, count=3),
     )
-]
+)
 
 
-def hit_drawing(number_of_cards: int, deck: Deck) -> bool:
+def hit_drawing(draw_count: int, deck: Deck) -> bool:
     """
 
-    :param number_of_cards: the number of cards drawn
+    :param draw_count: the number of cards drawn
     :param deck: the deck from which to draw
     :return: whether the hand scores a hit
     """
     blanks = 0
-    for _ in range(number_of_cards):
-        card = deck.pop()
+    for card in deck:
+        draw_count -= 1
         if card.damage == 0:
             blanks += 1
-            if not blanks <= 1:
-                break  # stop drawing cards, attack has missed
+        if draw_count <= 0 or blanks > 1:
+            break
     return blanks <= 1
 
 
-def damage_drawing(number_in_initial_draw: int, deck: Deck) -> int:
+def damage_drawing(draw_count: int, deck: Deck) -> int:
     """
 
-    :param number_in_initial_draw: number of cards initially drawn
+    :param draw_count: number of cards initially drawn
     :param deck: the deck from which the cards are to be drawn
     :return: the damage done by drawing the cards
     """
     blanks = 0
     damage = 0
     cards_drawn = 0
-    draws_remaining = number_in_initial_draw
-    while draws_remaining > 0:
-        card = deck.pop()
+    draws_remaining = draw_count
+
+    if draw_count == 0:
+        return 0
+
+    for index in it.count():
+        card = deck[index]
         draws_remaining -= 1
         cards_drawn += 1
-        if cards_drawn <= number_in_initial_draw and card.damage == 0:
+        if cards_drawn <= draw_count and card.damage == 0:
             blanks += 1
-            if not blanks <= 1:
+            if blanks > 1:
                 break  # stop drawing cards, attack has missed
         damage += card.damage
         if card.exploding:
             draws_remaining += 1
+        if draws_remaining <= 0 or blanks > 1:
+            break
     return damage if blanks <= 1 else 0
 
 
@@ -193,20 +200,21 @@ BLACK_DIE: Die = tuple(
 )
 
 
-def hit_rolling(number_of_rolls: int, die: Die) -> bool:
+def hit_rolling(roll_count: int, die: Die) -> bool:
     """
 
-    :param number_of_rolls: the number of dice rolled
+    :param roll_count: the number of dice rolled
     :param die: the die to be rolled
     :return: whether the hand scores a hit
     """
     blanks = 0
-    for _ in range(number_of_rolls):
+    for _ in it.count():
         face = random.choice(die)
+        roll_count -= 1
         if face.damage == 0:
             blanks += 1
-            if not blanks <= 1:
-                break  # stop drawing cards, attack has missed
+        if roll_count <= 0 or blanks > 1:
+            break  # stop drawing cards, attack has missed
     return blanks <= 1
 
 
@@ -240,7 +248,7 @@ def damage_rolling(number_in_initial_roll: int, die: Die) -> int:
 
 
 # tracking the number of cards in the hand by type
-CollapsedDeck = list[int]
+CollapsedDeck = tuple[int, ...]
 
 
 def size(hand: CollapsedDeck) -> int:
@@ -287,20 +295,22 @@ def rational_card_damage_from_tree(
         damage = rational_white_damage(hand) * probability
         return damage
 
+    mutable_deck = list(deck)
+    mutable_hand = list(hand)
     damage = sp.Integer(0)
     for card_type in range(4):
         if deck[card_type] > 0:
             prob = sp.Rational(deck[card_type], size(deck))
-            deck[card_type] -= 1
-            hand[card_type] += 1
+            mutable_deck[card_type] -= 1
+            mutable_hand[card_type] += 1
             if (
                 size(hand) > hand_size or hand[0] < 2
             ):  # bonus card or we haven't missed yet
                 damage += rational_card_damage_from_tree(
                     deck, hand, hand_size, probability * prob
                 )
-            hand[card_type] -= 1
-            deck[card_type] += 1
+            mutable_hand[card_type] -= 1
+            mutable_deck[card_type] += 1
     return damage
 
 
@@ -321,20 +331,22 @@ def float_card_damage_from_tree(
         damage = float_white_damage(hand) * probability
         return damage
 
+    mutable_deck = list(deck)
+    mutable_hand = list(hand)
     damage = 0.0
     for card_type in range(4):
         if deck[card_type] > 0:
             prob = deck[card_type] / size(deck)
-            deck[card_type] -= 1
-            hand[card_type] += 1
+            mutable_deck[card_type] -= 1
+            mutable_hand[card_type] += 1
             if (
                 size(hand) > hand_size or hand[0] < 2
             ):  # bonus card or we haven't missed yet
                 damage += float_card_damage_from_tree(
                     deck, hand, hand_size, probability * prob
                 )
-            hand[card_type] -= 1
-            deck[card_type] += 1
+            mutable_hand[card_type] -= 1
+            mutable_deck[card_type] += 1
     return damage
 
 

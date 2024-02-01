@@ -2,8 +2,8 @@ import sympy as sp
 
 from icecream import ic  # type: ignore
 
-from math import adjacency_matrices as am
-from game import fury_of_dracula as fod
+import mwmath.adjacency_matrices as am
+import game.fury_of_dracula as fod
 
 ic.disable()
 
