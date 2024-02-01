@@ -1,8 +1,8 @@
 from icecream import ic  # type: ignore
 
-from combinations import *
-import grizzled as gz
-from grizzled import assault, gas, shelling
+from math.combinations import *
+from game import grizzled as gz
+from game.grizzled import assault, gas, shelling
 
 ic.disable()
 

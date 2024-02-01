@@ -3,8 +3,6 @@ from sympy.functions.combinatorial.numbers import nC as spnc
 from sympy.functions.combinatorial.numbers import nP as spnp
 from sympy import multinomial_coefficients as spmc
 
-# making names, types, and conventions match book
-
 def fact(n: int) -> int:
     """
 

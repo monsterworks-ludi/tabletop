@@ -1,7 +1,6 @@
 from icecream import ic  # type: ignore
 
-import debug as db
-import adjacency_matrices as am
+from math import adjacency_matrices as am
 
 ic.disable()
 

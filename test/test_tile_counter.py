@@ -1,4 +1,4 @@
-import tile_counter as tc
+from math import tile_counter as tc
 
 from icecream import ic  # type: ignore
 

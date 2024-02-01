@@ -8,7 +8,7 @@ import sympy as sp
 
 from collections import defaultdict
 
-import rebellion as rb
+from game import rebellion as rb
 
 ic.disable()
 

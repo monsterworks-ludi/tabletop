@@ -1,6 +1,7 @@
 from itertools import combinations
 from collections import defaultdict
-from pprint import pprint
+
+from icecream import ic  # type: ignore
 
 def two_x(x: int, n: int) -> int:
     return 2 * x
@@ -86,7 +87,7 @@ def one_minus_n(x: int, n: int) -> int:
     return 1 - n
 
 
-deck = [
+DECK = [
     two_x,
     two_x_minus_six,
     ten_minus_two_x,
@@ -123,16 +124,18 @@ def best_value(hand) -> int:
         return 42
     return max(possible_values)
 
-values: defaultdict[int, int] = defaultdict(int)
-hands = 0
-for hand in combinations(deck, 2):
+if __name__ == "__main__":
+
+VALUES: defaultdict[int, int] = defaultdict(int)
+HANDS = 0
+for HAND in combinations(deck, 2):
     # print(best_value(hand), hand)
-    values[best_value(hand)] += 1
-    hands += 1
+    VALUES[best_value(HAND)] += 1
+    HAND += 1
 
-# for each hand, we should compute the expected value of the hand,
-# assuming we draw whenever the expected value will increase
+    # for each hand, we should compute the expected value of the hand,
+    # assuming we draw whenever the expected value will increase
 
-pprint(values)
-print(hands)
-print(len(deck))
+    ic(VALUES)
+    ic(HANDS)
+    ic(len(DECK))

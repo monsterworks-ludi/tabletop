@@ -5,9 +5,8 @@ import itertools as it
 import pytest
 from icecream import ic  # type: ignore
 
-import combinations as cmb
-import zombicide as zc
-import king_of_tokyo as kt
+from math import combinations as cmb
+from game import king_of_tokyo as kt, zombicide as zc
 
 
 def set_seed() -> int:

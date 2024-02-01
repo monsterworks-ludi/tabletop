@@ -1,10 +1,11 @@
 import random
 import itertools as it
 import sympy as sp
-import time as time
-
 from typing import NamedTuple
 
+from icecream import ic  # type: ignore
+
+ic.disable()
 
 class Card(NamedTuple):
     damage: int

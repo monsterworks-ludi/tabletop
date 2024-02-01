@@ -5,8 +5,8 @@ import itertools as it
 import pytest
 from icecream import ic  # type: ignore
 
-from combinations import comb, mult
-import oathsworn as os
+from math.combinations import comb, mult
+from game import oathsworn as os
 
 ic.disable()
 # setting this False will skip tests with runtimes over 5 minutes

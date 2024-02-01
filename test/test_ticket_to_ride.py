@@ -3,9 +3,9 @@ import itertools as it
 
 from icecream import ic  # type: ignore
 
-import adjacency_matrices as am
-import ticket_to_ride as ttr
-from ticket_to_ride import x, v, b, g, p, r, t, w, y
+from math import adjacency_matrices as am
+from game import ticket_to_ride as ttr
+from game.ticket_to_ride import x, v, b, g, p, r, t, w, y
 
 ic.disable()
 

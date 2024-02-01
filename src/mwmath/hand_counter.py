@@ -2,8 +2,7 @@ import sympy as sp
 from collections import defaultdict
 from itertools import permutations
 
-import combinations as cmb
-
+import mwmath.combinations as cmb
 
 Card = tuple[int, int]
 """ A card is a tuple with two entries

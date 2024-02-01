@@ -1,6 +1,6 @@
 import sympy as sp
 
-import adjacency_matrices as am
+import mwmath.adjacency_matrices as am
 
 # establish symbols for each space
 IBERIA_CITIES = (

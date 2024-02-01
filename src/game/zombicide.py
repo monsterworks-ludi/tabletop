@@ -2,7 +2,8 @@ import random
 
 from typing import Optional
 
-def hit_on_a(target: int, *, critical:Optional[int]=None) -> int:
+
+def hit_on_a(target: int, *, critical: Optional[int] = None) -> int:
     """
 
     :param target: rolls at least target will hit
@@ -16,5 +17,3 @@ def hit_on_a(target: int, *, critical:Optional[int]=None) -> int:
     if critical and roll >= critical:
         hits += hit_on_a(target, critical=critical)
     return hits
-
-
