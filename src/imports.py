@@ -37,6 +37,8 @@ assert is_std_lib('itertools')
 assert is_std_lib('collections')
 assert is_std_lib('sys')
 assert is_std_lib('typing')
+assert is_std_lib('functools')
+
 assert not is_std_lib('sympy')
 assert not is_std_lib('pytest')
 assert not is_std_lib('icecream')
