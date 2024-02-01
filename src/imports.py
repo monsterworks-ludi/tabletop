@@ -1,4 +1,3 @@
-# from __future__ import unicode_literals, print_function
 import sys
 from contextlib import contextmanager
 from importlib import import_module
@@ -33,12 +32,11 @@ def is_std_lib(module):
             if imported_module:
                 sys.modules[module] = imported_module
 
-print(is_std_lib('random'))
-print(is_std_lib('itertools'))
-print(is_std_lib('collections'))
-print(is_std_lib('sys'))
-print(is_std_lib('typing'))
-print(20*'#')
-print(is_std_lib('sympy'))
-print(is_std_lib('pytest'))
-print(is_std_lib('icecream'))
+assert is_std_lib('random')
+assert is_std_lib('itertools')
+assert is_std_lib('collections')
+assert is_std_lib('sys')
+assert is_std_lib('typing')
+assert not is_std_lib('sympy')
+assert not is_std_lib('pytest')
+assert not is_std_lib('icecream')
