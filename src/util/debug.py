@@ -37,6 +37,27 @@ def debug(func):
 
     return update_wrapper(wrapper_func, func)
 
+def checkup(func):
+    """
+    toggles ic printing for the wrapped function
+
+    :param func: function to be wrapped
+    :return: the wrapped function
+    """
+
+    def wrapper_func(*arg, **kwargs):
+        arg[0].check()
+
+        res = func(*arg, **kwargs)
+
+        arg[0].check()
+        return res
+
+    return update_wrapper(wrapper_func, func)
+
+def icp(message):
+    ic(message)
+
 if __name__ == "__main__":
 
     @debug
