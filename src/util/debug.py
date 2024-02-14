@@ -1,4 +1,4 @@
-from functools import update_wrapper
+from functools import wraps
 
 from icecream import ic  # type: ignore
 
@@ -13,6 +13,7 @@ def debug(func):
     :return: the wrapped function
     """
 
+    @wraps(func)
     def wrapper_func(*arg, **kwargs):
         global IC_DEPTH
         indent = IC_DEPTH*"  "
@@ -35,16 +36,17 @@ def debug(func):
 
         return res
 
-    return update_wrapper(wrapper_func, func)
+    return wrapper_func
 
 def checkup(func):
     """
-    toggles ic printing for the wrapped function
+    calls an object's "check()" method before and after executing the decorated method
 
     :param func: function to be wrapped
     :return: the wrapped function
     """
 
+    @wraps(func)
     def wrapper_func(*arg, **kwargs):
         arg[0].check()
 
@@ -53,7 +55,7 @@ def checkup(func):
         arg[0].check()
         return res
 
-    return update_wrapper(wrapper_func, func)
+    return wrapper_func
 
 def icp(message):
     ic(message)
@@ -62,10 +64,12 @@ if __name__ == "__main__":
 
     @debug
     def fact(n: int) -> int:
+        """Recursive factorial implementation."""
         if n == 0:
             return 1
         else:
             return n*fact(n-1)
 
 
-    fact(3)
+    assert fact(3) == 6
+    assert fact.__doc__ == "Recursive factorial implementation."
