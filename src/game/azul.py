@@ -1,12 +1,14 @@
 import sympy as sp
 import copy
 import itertools
+from collections import defaultdict
 
 from icecream import ic  # type: ignore
 
 from util.debug import checkup, icp
 
 ic.disable()
+IC_PREFIX = ""
 
 # region SIMPLE TREES
 
@@ -158,15 +160,8 @@ class AzulBoard:
 
     def __init__(self, player, board=None, rows=None, score=0, broken_tiles=0):
         self.player = player
-        if board is None:
-            self.board = sp.zeros(5, 5)
-        else:
-            self.board = board
-        if rows is None:
-            # row number -> color, count
-            self.rows = [[-1, 0], [-1, 0], [-1, 0], [-1, 0], [-1, 0]]
-        else:
-            self.rows = rows
+        self.board = board if board else sp.zeros(5, 5)
+        self.rows = rows if rows else [[-1, 0], [-1, 0], [-1, 0], [-1, 0], [-1, 0]]
         self.score = score
         self.broken_tiles = broken_tiles
 
@@ -175,7 +170,7 @@ class AzulBoard:
         assert len(self.rows) == 5
         for row, (color, count) in enumerate(self.rows):
             assert count <= row + 1
-            if color == TileFactories.EMPTY:
+            if color == AzulTiles.EMPTY:
                 assert count == 0
             else:
                 assert count > 0
@@ -183,39 +178,43 @@ class AzulBoard:
                 assert self.board[row, column] == 0
 
     @checkup
-    def board_string(self):
+    def board_row_string(self, row):
         string = "["
-        for row in range(5):
-            for col in range(5):
-                if self.board[row, col] == 1:
-                    color_index = AzulBoard.color(row=row, column=col)
-                    color_string = TileFactories.color_string(color_index)
-                    string += color_string
-                else:
-                    string += "_"
-            string += " | "
+        for col in range(5):
+            if self.board[row, col] == 1:
+                color_index = AzulBoard.color(row=row, column=col)
+                color_string = AzulTiles.color_string(color_index)
+                string += color_string
+            else:
+                string += "_"
         string += "]"
         return string
 
     @checkup
     def row_string(self, index):
         color_index, count = self.rows[index]
-        return count * TileFactories.color_string(color_index)
+        tiles = count * AzulTiles.color_string(color_index)
+        string = (5 - len(tiles)) * " " + tiles
+        return string
 
     @checkup
-    def row_strings(self):
-        strings = [self.row_string(index) for index in range(5)]
-        return "[" + " | ".join(strings) + "]"
+    def __repr__(self):
+        string = (
+            f"Player {self.player}, Score {self.score}, Broken {self.broken_tiles}\n"
+        )
+        for row in range(5):
+            string += self.row_string(row) + " " + self.board_row_string(row) + "\n"
+        return string
 
     @checkup
     def legal_placement(self, *, color, row):
         if self.board[row, self.column(color=color, row=row)] == 1:
             # cannot place in row if already played
             return False
-        if not self.rows[row][0] in {0, color}:
+        if not self.rows[row][0] in {AzulTiles.EMPTY, color}:
             # cannot place in row of a different color
             return False
-        if not self.rows[row][1] == row + 1:
+        if not self.rows[row][1] < row + 1:
             # cannot place in a full row
             return False
         return True
@@ -225,13 +224,16 @@ class AzulBoard:
         if not self.legal_placement(color=color, row=row):
             self.broken_tiles += count
         else:
+            self.check()
             row_color, row_count = self.rows[row]
-            assert row_color == 0 or row_color == color
+            assert row_color == AzulTiles.EMPTY or row_color == color
             empty_spaces = (row + 1) - row_count
-            unbroken_tiles = count - max(count, empty_spaces)
+            unbroken_tiles = min(count, empty_spaces)
             broken_tiles = count - unbroken_tiles
+            self.rows[row][0] = color
             self.rows[row][1] += unbroken_tiles
             self.broken_tiles += broken_tiles
+            self.check()
 
     @checkup
     def score_tile(self, row, col):
@@ -280,7 +282,7 @@ class AzulBoard:
                 col = AzulBoard.column(row=row, color=color)
                 assert self.board[row, col] == 0
                 self.board[row, col] = 1
-                self.rows[row] = [TileFactories.EMPTY, 0]
+                self.rows[row] = [AzulTiles.EMPTY, 0]
                 self.score_tile(row, col)
 
         if self.broken_tiles <= 7:
@@ -311,7 +313,7 @@ class AzulBoard:
         )
 
 
-class TileFactories:
+class AzulTiles:
 
     EMPTY = -1
 
@@ -336,10 +338,10 @@ class TileFactories:
         self.factories = factories
 
     def check(self):
-        assert len(self.factories) == TileFactories.CENTER_PILE + 1
+        assert len(self.factories) == AzulTiles.CENTER_PILE + 1
         assert all(
             len(self.factories[index]) == 6
-            for index in range(TileFactories.CENTER_PILE + 1)
+            for index in range(AzulTiles.CENTER_PILE + 1)
         )
 
     @checkup
@@ -347,193 +349,230 @@ class TileFactories:
         factory = self.factories[factory_index]
         string = ""
         for index in range(6):
-            string += factory[index] * TileFactories.color_string(index)
+            string += factory[index] * AzulTiles.color_string(index)
         return string
 
     @checkup
-    def factory_strings(self):
+    def __repr__(self):
         strings = [self.factory_string(index) for index in range(6)]
         return "{" + " | ".join(strings) + "}"
 
     @checkup
     def take(self, *, factory, taken_color):
-        if factory < TileFactories.CENTER_PILE:
+        if factory < AzulTiles.CENTER_PILE:
             for color in range(5):
                 if color != taken_color:
-                    self.factories[TileFactories.CENTER_PILE][color] += self.factories[
+                    self.factories[AzulTiles.CENTER_PILE][color] += self.factories[
                         factory
                     ][color]
             self.factories[factory] = [0, 0, 0, 0, 0, 0]
             return False
         else:
-            self.factories[TileFactories.CENTER_PILE][taken_color] = 0
-            if (
-                self.factories[TileFactories.CENTER_PILE][TileFactories.FIRST_PLAYER]
-                == 1
-            ):
-                self.factories[TileFactories.CENTER_PILE][
-                    TileFactories.FIRST_PLAYER
-                ] = 0
+            self.factories[AzulTiles.CENTER_PILE][taken_color] = 0
+            if self.factories[AzulTiles.CENTER_PILE][AzulTiles.FIRST_PLAYER] == 1:
+                self.factories[AzulTiles.CENTER_PILE][AzulTiles.FIRST_PLAYER] = 0
                 return True
 
     @checkup
-    def empty(self):
-        empty = all(
-            self.factories[factory][color] == 0
-            for factory in range(TileFactories.CENTER_PILE + 1)
+    def __bool__(self):
+        nonempty = any(
+            self.factories[factory][color] > 0
+            for factory in range(AzulTiles.CENTER_PILE + 1)
             for color in range(6)
         )
-        return empty
+        return nonempty
 
 
-def play_game(prefix, player, factories, player_boards, past_moves):
+OUTCOMES_FOR_HIST: dict[tuple[str, str, str], list] = defaultdict(list)
 
-    icp(
-        f"{prefix}Player 0: {player_boards[0].row_strings()} ({player_boards[0].broken_tiles} broken)"
-    )
-    icp(
-        f"{prefix}Player 1: {player_boards[1].row_strings()} ({player_boards[1].broken_tiles} broken)"
-    )
-    icp(f"{prefix}Factory: {factories.factory_strings()}")
 
-    if factories.empty():
-        for player_board in player_boards:
-            player_board.score_round()
-            player_board.score_game()
+class AzulState:
 
-        result = (
-            player_boards[0].score,
-            player_boards[1].score,
-        ), player_boards
+    def __init__(self, player, tiles, boards, strategies, history=None, hist=None):
+        self.player = player
+        self.tiles = tiles
+        self.boards = boards
+        self.strategies = strategies
+        self.history = history if history else ()
+        self.hist = hist if hist else ()
 
-        ic.enable()
-        ic(past_moves, result[0])
-        ic.disable()
+    def check(self):
+        pass
 
-        return result
+    def optimal_strategy(
+        self,
+    ) -> tuple[tuple[int, ...], tuple[str, ...], tuple[str, ...]]:
+        optimal_result: tuple[tuple[int, ...], tuple[str, ...], tuple[str, ...]] = (
+            tuple(
+                -100_000 if p == self.player else 100_000
+                for p in range(len(self.boards))
+            ),
+            tuple(),
+            tuple(),
+        )
+        optimal_score = -200_000
+        for color, factory, row in itertools.product(range(5), range(6), range(5)):
+            count = self.tiles.factories[factory][color]
+            if count > 0:
+                output = f"{AzulTiles.color_string(color)} ({count}): {factory} -> {self.player}.{row}."
+                icp(output)
+                new_player = (self.player + 1) % len(self.boards)
+                new_tiles = copy.deepcopy(self.tiles)
+                new_boards = copy.deepcopy(self.boards)
+                new_strategies = self.strategies
+                new_boards[self.player].place_in_row(color=color, count=count, row=row)
+                if new_tiles.take(taken_color=color, factory=factory):
+                    self.boards[self.player].broken_tiles += 1
+                new_history = (
+                    *self.history,
+                    f"{AzulTiles.color_string(color)}: {factory} -> {self.player}.{row}",
+                )
+                new_hist = (*self.hist, AzulTiles.color_string(color))
+                state = AzulState(
+                    new_player,
+                    new_tiles,
+                    new_boards,
+                    new_strategies,
+                    new_history,
+                    new_hist,
+                )
+                result = state.label
+                scores = result[0]
+                icp(scores)
+                delta_score = min(
+                    scores[self.player] - scores[p] for p in range(len(self.boards))
+                )
+                if delta_score > optimal_score:
+                    output = f"Replacing {optimal_result[1]} with {result[1]}."
+                    icp(output)
+                    optimal_result = result
+                    optimal_score = delta_score
+                else:
+                    output = f"Rejecting {result[1]}, as {optimal_result[1]} is better."
+                    icp(output)
 
-    optimal = (-1, -1), (None, None)
-    for color, factory, row in itertools.product(range(5), range(6), range(5)):
-        new_factories = copy.deepcopy(factories)
-        new_player_boards = copy.deepcopy(player_boards)
-        new_past_moves = copy.deepcopy(past_moves)
-        count = new_factories.factories[factory][color]
-        if count > 0:
-            icp(
-                f"{prefix}{TileFactories.color_string(color)} ({count}):{factory} -> {row}"
+        return optimal_result
+
+    @property
+    def label(self) -> tuple[tuple[int, ...], tuple[str, ...], tuple[str, ...]]:
+        global OUTCOMES_FOR_HIST
+        if not self.tiles:
+            for board in self.boards:
+                board.score_round()
+                board.score_game()
+            OUTCOMES_FOR_HIST[self.hist].append(
+                (tuple(board.score for board in self.boards), self.history)
             )
-            new_player_boards[player].place_in_row(color=color, count=count, row=row)
-            if new_factories.take(taken_color=color, factory=factory):
-                # we took the first player token
-                icp(f"{prefix}First Player Tile Taken.")
-                new_player_boards[player].broken_tiles += 1
-            new_past_moves.append(
-                f"{TileFactories.color_string(color)} {factory} -> {player}.{row}"
+            result = (
+                tuple(board.score for board in self.boards),
+                self.history,
+                self.hist,
             )
-            result = play_game(
-                prefix + ".",
-                (player + 1) % 2,
-                new_factories,
-                new_player_boards,
-                new_past_moves,
-            )
+            output = f"Result of game {result[1]} is {result[0]}"
+            icp(output)
+            for board in self.boards:
+                ic(board)
+            return result
 
-            new_player_0_score = result[0][0]
-            new_player_1_score = result[0][1]
-            old_player_0_score = optimal[0][0]
-            old_player_1_score = optimal[0][1]
-
-            if (
-                player == 0
-                and new_player_0_score - new_player_1_score
-                > old_player_1_score - old_player_1_score
-                or player == 1
-                and new_player_1_score - new_player_0_score
-                > old_player_1_score - old_player_0_score
-            ):
-                ic.enable()
-                icp(f"{prefix}Player {player} prefers {result[0]} over {optimal[0]}.")
-                optimal = result
-                ic.disable()
-
-    return optimal
+        return self.strategies[self.player](self)
 
 
 if __name__ == "__main__":
 
-    PLAYER_ONE_BOARD = AzulBoard(
+    BOARD_A = AzulBoard(
         0,
         sp.Matrix(
             [
-                [1, 0, 1, 1, 1],
+                [1, 1, 1, 1, 0],
                 [1, 0, 1, 1, 1],
                 [1, 1, 0, 1, 1],
-                [1, 0, 1, 0, 0],
-                [1, 0, 0, 1, 0],
+                [1, 1, 1, 1, 0],
+                [0, 0, 0, 1, 0],
+                # [1, 1, 1, 1, 0],
+                # [1, 0, 1, 1, 1],
+                # [1, 1, 0, 1, 1],
+                # [1, 1, 1, 1, 0],
+                # [0, 0, 0, 1, 0],
             ]
         ),
         [
-            [TileFactories.EMPTY, 0],
-            [TileFactories.EMPTY, 0],
-            [TileFactories.BLUE, 2],
-            [TileFactories.EMPTY, 0],
-            [TileFactories.EMPTY, 0],
+            [AzulTiles.EMPTY, 0],
+            [AzulTiles.EMPTY, 0],
+            [AzulTiles.BLUE, 2],
+            [AzulTiles.EMPTY, 0],
+            [AzulTiles.RED, 1],
         ],
-        49,
+        30,
         1,
     )
-    PLAYER_ONE_BOARD.check()
-    ic(PLAYER_ONE_BOARD.board_string())
-    for i in range(5):
-        ic(i, PLAYER_ONE_BOARD.row_string(i))
 
-    PLAYER_TWO_BOARD = AzulBoard(
+    BOARD_B = AzulBoard(
         1,
         sp.Matrix(
             [
                 [0, 1, 1, 1, 1],
-                [0, 1, 1, 1, 0],
-                [0, 1, 1, 0, 1],
+                [1, 1, 1, 0, 1],
+                [0, 1, 1, 1, 1],
                 [1, 0, 0, 1, 1],
-                [0, 0, 1, 0, 0],
+                [0, 1, 1, 1, 0],
+                # [0, 1, 1, 1, 1],
+                # [1, 1, 1, 0, 1],
+                # [0, 1, 1, 1, 1],
+                # [1, 0, 0, 1, 1],
+                # [0, 1, 1, 1, 0],
             ]
         ),
         [
-            [TileFactories.BLUE, 1],
-            [TileFactories.CYAN, 1],
-            [TileFactories.EMPTY, 0],
-            [TileFactories.EMPTY, 0],
-            [TileFactories.YELLOW, 2],
+            [AzulTiles.BLUE, 1],
+            [AzulTiles.EMPTY, 0],
+            [AzulTiles.EMPTY, 0],
+            [AzulTiles.CYAN, 2],
+            [AzulTiles.BLUE, 4],
         ],
-        23,
+        30,
         0,
     )
-    PLAYER_TWO_BOARD.check()
 
-    ic(PLAYER_TWO_BOARD.board_string())
-    for i in range(5):
-        ic(i, PLAYER_TWO_BOARD.row_string(i))
-
-    FACTORIES = TileFactories(
-        [
+    TILES = AzulTiles(
+        [  # b, y, r, k, c, 1 #
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [1, 0, 0, 3, 0, 0],
-            [1, 0, 0, 0, 2, 0],
+            [0, 0, 0, 0, 0, 0],
+            [3, 0, 4, 0, 2, 0],
+            # [0, 0, 0, 0, 0, 0],
+            # [0, 0, 0, 0, 0, 0],
+            # [0, 0, 0, 0, 0, 0],
+            # [0, 0, 0, 0, 0, 0],
+            # [0, 0, 0, 0, 0, 0],
+            # [3, 0, 4, 0, 1, 0],
         ]
     )
-    FACTORIES.check()
 
-    res = play_game("", 0, FACTORIES, (PLAYER_ONE_BOARD, PLAYER_TWO_BOARD), [])
-
+    STATE = AzulState(
+        0,
+        TILES,
+        (BOARD_A, BOARD_B),
+        (AzulState.optimal_strategy, AzulState.optimal_strategy),
+    )
+    SCORES, HISTORY, HIST = STATE.label
+    ic(HISTORY)
+    ic(HIST)
+    for P, SCORE in enumerate(SCORES):
+        ic(P, SCORE)
     ic.enable()
-
-    ic(res[0])
-    ic(res[1])
-    ic(res[1][0].board_string())
-    ic(res[1][1].board_string())
+    for OUTCOME, SCORE_PAIRS_FULL in OUTCOMES_FOR_HIST.items():
+        MAX_ZERO = 0
+        MAX_ONE = 0
+        BEST_PLAY = ""
+        for SCORE_PAIR_FULL in SCORE_PAIRS_FULL:
+            MAX_ZERO = max(MAX_ZERO, SCORE_PAIR_FULL[0][0])
+            MAX_ONE = max(MAX_ONE, SCORE_PAIR_FULL[0][1])
+            if MAX_ZERO == SCORE_PAIR_FULL[0][0] and MAX_ONE == SCORE_PAIR_FULL[0][1]:
+                BEST_PLAY = SCORE_PAIR_FULL[1]
+        if OUTCOME in {('b', 'r', 'c'), ('b', 'c', 'r'), ('r', 'b', 'c')}:
+            ic(OUTCOME, MAX_ZERO - MAX_ONE, BEST_PLAY)
 
     ic.disable()
 
