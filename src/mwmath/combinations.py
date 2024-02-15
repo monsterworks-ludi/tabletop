@@ -1,6 +1,6 @@
 import sympy as sp
-from sympy.functions.combinatorial.numbers import nC as spnc
-from sympy.functions.combinatorial.numbers import nP as spnp
+from sympy.functions.combinatorial.numbers import nC as spnC
+from sympy.functions.combinatorial.numbers import nP as spnP
 
 def fact(n: int) -> int:
     """
@@ -19,7 +19,7 @@ def perm(n: int, k: int) -> int:
     """
     if k < 0 or k > n:
         return 0
-    return spnp(n, k, replacement=False)
+    return spnP(n, k, replacement=False)
 
 
 def comb(n: int, k: int) -> int:
@@ -31,7 +31,7 @@ def comb(n: int, k: int) -> int:
     """
     if k < 0 or k > n:
         return 0
-    return spnc(n, k, replacement=False)
+    return spnC(n, k, replacement=False)
 
 
 def mult(params: tuple[int, ...]) -> int:
