@@ -14,7 +14,7 @@ class TestCampaigns:
         connections[16] = {16}
         ic(connections)
         matrix = am.build_matrix(connections)
-        steps, terminal_matrix = am.terminal_matrix(matrix, (16,))
+        steps, terminal_matrix = am.terminal_matrix(matrix, {16})
         assert steps == 16
         assert terminal_matrix[16, 0] == 256
         rev_conn = am.reverse_connections(connections)
@@ -59,7 +59,7 @@ class TestCampaigns:
             26: {26},
         }
         matrix = am.build_matrix(connections)
-        steps, terminal_matrix = am.terminal_matrix(matrix, (11, 13, 15, 26))
+        steps, terminal_matrix = am.terminal_matrix(matrix, {11, 13, 15, 26})
         assert steps == 10
         assert terminal_matrix[11, 0] == 5
         assert terminal_matrix[13, 0] == 5
@@ -95,7 +95,7 @@ class TestCampaigns:
         #
         connections[34] = {34}
         matrix = am.build_matrix(connections)
-        steps, terminal_matrix = am.terminal_matrix(matrix, (34,))
+        steps, terminal_matrix = am.terminal_matrix(matrix, {34})
         assert steps == 10
         assert terminal_matrix[34, 0] == 65_536
         rev_conn = am.reverse_connections(connections)
