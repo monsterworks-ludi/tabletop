@@ -11,6 +11,7 @@ ic.disable()
 
 # todo: docstrings and type information
 
+
 class AzulBoard:
 
     BROKEN_TILES_POINTS = [0, -1, -2, -4, -6, -8, -11, -14]
@@ -304,8 +305,14 @@ class AzulState:
         :return:
         """
         weighted_scores = tuple(0.0 for _ in range(len(self.boards)))
+        new_history = (
+            *self.history,
+            f"*",
+        )
         for color, factory in itertools.product(range(5), range(6)):
-            optimal_scores = tuple(-sp.oo if p == self.player else sp.oo for p in range(len(self.boards)))
+            optimal_scores = tuple(
+                -sp.oo if p == self.player else sp.oo for p in range(len(self.boards))
+            )
             optimal_score = -sp.oo
             for row in range(5):
                 count = self.tiles.factories[factory][color]
