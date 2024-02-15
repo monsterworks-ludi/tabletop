@@ -5,146 +5,9 @@ from collections import defaultdict
 
 from icecream import ic  # type: ignore
 
-from util.debug import checkup, icp
+from util.debug import checkup
 
 ic.disable()
-IC_PREFIX = ""
-
-# region SIMPLE TREES
-
-# player_0_tiles -> player outcomes
-RESULTS = {("b", "r"): (+3, -3), ("b", "t"): (-2, +2), ("r", "t"): (+4, -4)}
-
-# player_1_tiles -> probability of choice
-PROBS = {
-    ("b", "r"): (sp.Rational(9, 10), sp.Rational(1, 10)),
-    ("b", "t"): (sp.Rational(2, 10), sp.Rational(8, 10)),
-    ("r", "t"): (sp.Rational(2, 10), sp.Rational(8, 10)),
-}
-
-
-def fixed_dfs(
-    prefix: str,
-    player: int,
-    moves: list[str],
-    player_moves: tuple[str, ...] = tuple(),
-) -> tuple[tuple, tuple]:
-    """
-
-    :param prefix: a prefix for the ic statements so the tree structure is clearer
-    :param player: the player to make the next move
-    :param moves: the moves available to the player
-    :param player_moves: the history of moves made in previous turns
-    :return: the outcome and moves from an optimal play
-    """
-
-    prefix += "."
-
-    if len(moves) == 0:
-        for key, outcome in RESULTS.items():
-            if set(player_moves[::2]) == set(key):
-                icp(f"{prefix}{player_moves} pays out {outcome}")
-                return outcome, player_moves
-
-    best: tuple[tuple[int, int], tuple[str, ...]] = (-sp.oo, -sp.oo), tuple("*")
-    best_move: str = "*"
-    for move in moves:
-        icp(f"{prefix}Player {player} plays '{move}' from {player_moves}.")
-        new_moves = moves.copy()
-        new_moves.remove(move)
-        new_player_moves = player_moves + (move,)
-        result: tuple[tuple[int, int], tuple[str, ...]] = dfs(
-            prefix, (player + 1) % 2, new_moves, new_player_moves
-        )
-        if result[0][player] > best[0][player]:
-            icp(
-                f"{prefix}Selecting '{move}' ({result[0]}) over '{best_move}' ({best[0]})"
-            )
-            best = result
-            best_move = move
-        else:
-            icp(
-                f"{prefix}Retaining '{best_move}' ({best[0]}) over '{move}' ({result[0]})"
-            )
-    return best
-
-
-def prob_dfs(
-    prefix: str,
-    player: int,
-    moves: list[str],
-    player_moves: tuple[str, ...] = tuple(),
-) -> tuple[tuple, tuple]:
-    """
-
-    :param prefix: a prefix for the ic statements so the tree structure is clearer
-    :param player: the player to make the next move
-    :param moves: the moves available to the player
-    :param player_moves: the history of moves made in previous turns
-    :return: the outcome and moves from an optimal play
-    """
-
-    prefix += "."
-
-    if len(moves) == 0:
-        for key, outcome in RESULTS.items():
-            if set(player_moves[::2]) == set(key):
-                icp(f"{prefix}{outcome} from {player_moves}.")
-                return outcome, player_moves
-
-    expected_payoff = [sp.Integer(0), sp.Integer(0)]
-    for move in moves:
-        prob = sp.Integer(1)
-        for key, outcome in PROBS.items():
-            if set(moves) == set(key):
-                if key[0] == move:
-                    prob = outcome[0]
-                else:
-                    assert key[1] == move
-                    prob = outcome[1]
-        icp(
-            f"{prefix}Player {player} plays '{move}' from {player_moves} with probability {prob}."
-        )
-        new_moves = moves.copy()
-        new_moves.remove(move)
-        new_player_moves = player_moves + (move,)
-        result: tuple[tuple[int, int], tuple[str, ...]] = dfs(
-            prefix, (player + 1) % 2, new_moves, new_player_moves
-        )
-        expected_payoff[0] += prob * result[0][0]
-        expected_payoff[1] += prob * result[0][1]
-    icp(f"{prefix}Random moves lead to payoff of {tuple(expected_payoff)}.")
-    return tuple(expected_payoff), player_moves + ("*",)
-
-
-def rational_dfs(prefix, player, moves, player_moves=tuple()):
-    return fixed_dfs(prefix, player, moves, player_moves)
-
-
-def natural_dfs(prefix, player, moves, player_moves=tuple()):
-    if player == 0:
-        return fixed_dfs(prefix, player, moves, player_moves)
-    else:
-        return prob_dfs(prefix, player, moves, player_moves)
-
-
-dfs = rational_dfs
-
-
-def use_rational():
-    global dfs
-    dfs = rational_dfs
-    return dfs
-
-
-def use_natural():
-    global dfs
-    dfs = natural_dfs
-    return dfs
-
-
-# endregion
-
 
 class AzulBoard:
 
@@ -178,7 +41,7 @@ class AzulBoard:
                 assert self.board[row, column] == 0
 
     @checkup
-    def board_row_string(self, row):
+    def board_string(self, row):
         string = "["
         for col in range(5):
             if self.board[row, col] == 1:
@@ -203,7 +66,7 @@ class AzulBoard:
             f"Player {self.player}, Score {self.score}, Broken {self.broken_tiles}\n"
         )
         for row in range(5):
-            string += self.row_string(row) + " " + self.board_row_string(row) + "\n"
+            string += self.row_string(row) + " " + self.board_string(row) + "\n"
         return string
 
     @checkup
@@ -237,7 +100,6 @@ class AzulBoard:
 
     @checkup
     def score_tile(self, row, col):
-        old_score = self.score
         hor_score = False
         ver_score = False
         for delta in range(1, row + 1):
@@ -270,11 +132,9 @@ class AzulBoard:
             self.score += 1
         if not (ver_score or hor_score):
             self.score += 1
-        icp(f"({row}, {col}) scores {self.score - old_score}.")
 
     @checkup
     def score_round(self):
-        old_score = self.score
         for row, tiles in enumerate(self.rows):
             color, count = tiles
             if count == row + 1:
@@ -292,13 +152,9 @@ class AzulBoard:
         self.broken_tiles = 0
 
         self.score = max(self.score, 0)
-        icp(
-            f"EoR: Player {self.player} scores {self.score - old_score} for total of {self.score}"
-        )
 
     @checkup
     def score_game(self):
-        old_score = self.score
         for row in range(5):
             if all(self.board[row, col] == 1 for col in range(5)):
                 self.score += 2
@@ -308,9 +164,6 @@ class AzulBoard:
         for diag in range(5):
             if all(self.board[row, (row + diag) % 5] == 1 for row in range(5)):
                 self.score += 10
-        icp(
-            f"EoG: Player {self.player} scores {self.score - old_score} for total of {self.score}"
-        )
 
 
 class AzulTiles:
@@ -414,8 +267,6 @@ class AzulState:
         for color, factory, row in itertools.product(range(5), range(6), range(5)):
             count = self.tiles.factories[factory][color]
             if count > 0:
-                output = f"{AzulTiles.color_string(color)} ({count}): {factory} -> {self.player}.{row}."
-                icp(output)
                 new_player = (self.player + 1) % len(self.boards)
                 new_tiles = copy.deepcopy(self.tiles)
                 new_boards = copy.deepcopy(self.boards)
@@ -438,18 +289,12 @@ class AzulState:
                 )
                 result = state.label
                 scores = result[0]
-                icp(scores)
                 delta_score = min(
                     scores[self.player] - scores[p] for p in range(len(self.boards))
                 )
                 if delta_score > optimal_score:
-                    output = f"Replacing {optimal_result[1]} with {result[1]}."
-                    icp(output)
                     optimal_result = result
                     optimal_score = delta_score
-                else:
-                    output = f"Rejecting {result[1]}, as {optimal_result[1]} is better."
-                    icp(output)
 
         return optimal_result
 
@@ -468,10 +313,6 @@ class AzulState:
                 self.history,
                 self.hist,
             )
-            output = f"Result of game {result[1]} is {result[0]}"
-            icp(output)
-            for board in self.boards:
-                ic(board)
             return result
 
         return self.strategies[self.player](self)
@@ -483,16 +324,11 @@ if __name__ == "__main__":
         0,
         sp.Matrix(
             [
-                [1, 1, 1, 1, 0],
-                [1, 0, 1, 1, 1],
-                [1, 1, 0, 1, 1],
-                [1, 1, 1, 1, 0],
-                [0, 0, 0, 1, 0],
-                # [1, 1, 1, 1, 0],
-                # [1, 0, 1, 1, 1],
-                # [1, 1, 0, 1, 1],
-                # [1, 1, 1, 1, 0],
-                # [0, 0, 0, 1, 0],
+                [0, 1, 1, 0, 1],
+                [0, 1, 0, 1, 1],
+                [1, 0, 0, 0, 1],
+                [0, 1, 0, 1, 0],
+                [0, 0, 0, 0, 1],
             ]
         ),
         [
@@ -502,7 +338,7 @@ if __name__ == "__main__":
             [AzulTiles.EMPTY, 0],
             [AzulTiles.RED, 1],
         ],
-        30,
+        39,
         1,
     )
 
@@ -510,16 +346,11 @@ if __name__ == "__main__":
         1,
         sp.Matrix(
             [
-                [0, 1, 1, 1, 1],
-                [1, 1, 1, 0, 1],
-                [0, 1, 1, 1, 1],
-                [1, 0, 0, 1, 1],
-                [0, 1, 1, 1, 0],
-                # [0, 1, 1, 1, 1],
-                # [1, 1, 1, 0, 1],
-                # [0, 1, 1, 1, 1],
-                # [1, 0, 0, 1, 1],
-                # [0, 1, 1, 1, 0],
+                [0, 1, 0, 0, 0],
+                [1, 1, 1, 0, 0],
+                [1, 0, 1, 1, 1],
+                [0, 1, 0, 0, 0],
+                [1, 1, 1, 0, 0],
             ]
         ),
         [
@@ -540,13 +371,7 @@ if __name__ == "__main__":
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0, 0],
-            [3, 0, 4, 0, 2, 0],
-            # [0, 0, 0, 0, 0, 0],
-            # [0, 0, 0, 0, 0, 0],
-            # [0, 0, 0, 0, 0, 0],
-            # [0, 0, 0, 0, 0, 0],
-            # [0, 0, 0, 0, 0, 0],
-            # [3, 0, 4, 0, 1, 0],
+            [3, 0, 3, 0, 1, 0],
         ]
     )
 
@@ -556,12 +381,13 @@ if __name__ == "__main__":
         (BOARD_A, BOARD_B),
         (AzulState.optimal_strategy, AzulState.optimal_strategy),
     )
+    ic.enable()
     SCORES, HISTORY, HIST = STATE.label
+    ic(SCORES)
     ic(HISTORY)
     ic(HIST)
     for P, SCORE in enumerate(SCORES):
         ic(P, SCORE)
-    ic.enable()
     for OUTCOME, SCORE_PAIRS_FULL in OUTCOMES_FOR_HIST.items():
         MAX_ZERO = 0
         MAX_ONE = 0
@@ -575,16 +401,3 @@ if __name__ == "__main__":
             ic(OUTCOME, MAX_ZERO - MAX_ONE, BEST_PLAY)
 
     ic.disable()
-
-    # dfs = rational_dfs
-    # ic(dfs("", 0, ["b", "r", "t"]))
-    #
-    # ic("")
-    # ic(50 * "~")
-    # ic("")
-    #
-    # dfs = natural_dfs
-    # ic(dfs("", 0, ["b", "r", "t"]))
-
-
-# todo: should really do a more extensive example here
