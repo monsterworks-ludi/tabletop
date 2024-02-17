@@ -20,7 +20,7 @@ def debug(func):
         info = f"{indent}ic depth {IC_DEPTH} -> {IC_DEPTH + 1} in <{func.__name__}>"
         IC_DEPTH += 1
         ic.enable()
-        ic(info)
+        # ic(info)
 
         res = func(*arg, **kwargs)
 
@@ -28,11 +28,11 @@ def debug(func):
         indent = IC_DEPTH*"  "
         if IC_DEPTH <= 0:
             info = f"{indent}ic disabled in <{func.__name__}>"
-            ic(info)
+            # ic(info)
             ic.disable()
         else:
             info = f"{indent}ic depth {IC_DEPTH + 1} -> {IC_DEPTH} in <{func.__name__}>"
-            ic(info)
+            # ic(info)
 
         return res
 
