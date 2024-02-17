@@ -73,7 +73,7 @@ class TestAzul:
     @staticmethod
     def test_rational() -> None:
         state = TestAzul.state(
-            (az.AzulState.optimal_strategy, az.AzulState.optimal_strategy)
+            (az.AzulState.rational_strategy, az.AzulState.rational_strategy)
         )
         scores, history = state.label
         assert scores == (28, 25)
@@ -119,7 +119,7 @@ class TestAzul:
 
         state = TestAzul.state(
             (
-                az.AzulState.optimal_strategy,
+                az.AzulState.rational_strategy,
                 lambda s: az.AzulState.bayesian_strategy(s, weights),
             )
         )
