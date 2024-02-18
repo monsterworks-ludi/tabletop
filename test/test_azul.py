@@ -75,7 +75,7 @@ class TestAzul:
         state = TestAzul.state(
             (az.AzulState.rational_strategy, az.AzulState.rational_strategy)
         )
-        scores, history = state.label
+        scores, history = state.strategy
         assert scores == (28, 25)
         assert history == ("r: 5 -> 0.3", "c: 5 -> 1.2", "b: 5 -> 0.0")
 
@@ -123,6 +123,6 @@ class TestAzul:
                 lambda s: az.AzulState.bayesian_strategy(s, weights),
             )
         )
-        scores, history = state.label
+        scores, history = state.strategy
         assert abs((scores[0] - scores[1]) - 3.4) < 10**-14
         assert history == ('c: 5 -> 0.1', '*')

@@ -1,11 +1,11 @@
 import sympy as sp
 import copy
 import itertools
-from typing import Callable
+from typing import Callable, Optional
 
 from icecream import ic  # type: ignore
 
-from util.debug import checkup, debug
+from util.debug import checkup, icp
 
 ic.disable()
 
@@ -259,21 +259,27 @@ class AzulTiles:
 
 class AzulState:
 
-    Label = tuple[tuple[float, ...], tuple[str, ...]]
+    Strategy = tuple[tuple[float, ...], tuple[str, ...]]
 
-    def __init__(self, player, tiles, boards, strategies, history=None):
+    def __init__(self, player, tiles, boards, strategies, history=None) -> None:
         self.player = player
         self.tiles = tiles
         self.boards = boards
         self.strategies = strategies
         self.history = history if history else ()
+        self.stashed_strategy: Optional[AzulState.Strategy] = None
 
     def __repr__(self):
-        label = self.label
+        label = self.strategy
         return f"Player: {self.player}, Scores: {label[0]}, Moves: {label[1]}"
 
     @property
-    def label(self) -> Label:
+    def strategy(self) -> Strategy:
+        return (
+            self.stashed_strategy if self.stashed_strategy else self.compute_strategy()
+        )
+
+    def compute_strategy(self) -> Strategy:
         if not self.tiles:
             for board in self.boards:
                 board.score_round()
@@ -282,9 +288,11 @@ class AzulState:
                 tuple(board.score for board in self.boards),
                 self.history,
             )
-            return result
-
-        return self.strategies[self.player](self)
+            self.stashed_strategy = result
+        else:
+            self.stashed_strategy = self.strategies[self.player](self)
+        assert self.stashed_strategy is not None
+        return self.stashed_strategy
 
     def branch_states_for(self, factory, color):
         count = self.tiles.factories[factory][color]
@@ -294,9 +302,7 @@ class AzulState:
                 new_tiles = copy.deepcopy(self.tiles)
                 new_boards = copy.deepcopy(self.boards)
                 new_strategies = self.strategies
-                new_boards[self.player].place_in_row(
-                    color=color, count=count, row=row
-                )
+                new_boards[self.player].place_in_row(color=color, count=count, row=row)
                 if new_tiles.take(taken_color=color, factory=factory):
                     # they took the first player marker
                     self.boards[self.player].broken_tiles += 1
@@ -314,7 +320,10 @@ class AzulState:
                 yield state
 
     def optimal_for(self, factory, color):
-        return max((state for state in self.branch_states_for(factory, color)),key=lambda state: state.label[0][self.player])
+        return max(
+            (state for state in self.branch_states_for(factory, color)),
+            key=lambda state: state.strategy[0][self.player],
+        )
 
     @property
     def branch_states(self):
@@ -343,8 +352,9 @@ class AzulState:
                                 new_tiles,
                                 new_boards,
                                 new_strategies,
-                                new_history,
-                            )
+                                new_history)
+                            output = f"Parent: {self.history} -> Child: {state.history}"
+                            icp(output)
                             yield state
 
     def scores_to_score(self, scores):
@@ -357,14 +367,14 @@ class AzulState:
 
     def rational_strategy(
         self,
-    ) -> Label:
-        optimal_label = max(
-            (state.label for state in self.branch_states),
-            key=lambda label: self.scores_to_score(label[0]),
+    ) -> Strategy:
+        optimal_strategy = max(
+            (state.strategy for state in self.branch_states),
+            key=lambda strategy: self.scores_to_score(strategy[0]),
         )
-        return optimal_label
+        return optimal_strategy
 
-    def bayesian_strategy(self, weights: Callable) -> Label:
+    def bayesian_strategy(self, weights: Callable) -> Strategy:
         """
         NOTE: bayesian is not completely random. Which tiles this strategy takes are random,
         but once the tiles are determined, they are played optimally.
@@ -377,51 +387,17 @@ class AzulState:
             *self.history,
             f"*",
         )
-        for color, factory in itertools.product(range(5), range(6)):
-            optimal_scores = tuple(
-                -sp.oo if p == self.player else sp.oo for p in range(len(self.boards))
-            )
-            optimal_score = -sp.oo
-            for row in range(5):
-                count = self.tiles.factories[factory][color]
-                if count > 0:
-                    new_player = (self.player + 1) % len(self.boards)
-                    new_tiles = copy.deepcopy(self.tiles)
-                    new_boards = copy.deepcopy(self.boards)
-                    new_strategies = self.strategies
-                    new_boards[self.player].place_in_row(
-                        color=color, count=count, row=row
-                    )
-                    if new_tiles.take(taken_color=color, factory=factory):
-                        self.boards[self.player].broken_tiles += 1
-                    new_history = (
-                        *self.history,
-                        f"*",
-                    )
-                    state = AzulState(
-                        new_player,
-                        new_tiles,
-                        new_boards,
-                        new_strategies,
-                        new_history,
-                    )
-                    row_result = state.label
-                    row_scores = row_result[0]
-                    # row_history = row_results[1] doesn't contain anything useful (we averaged over all possible moves)
-                    row_score = min(
-                        row_scores[self.player] - row_scores[p]
-                        for p in range(len(self.boards))
-                        if not p == self.player
-                    )
-                    if row_score > optimal_score:
-                        optimal_score = row_score
-                        optimal_scores = row_scores
-
-            if not optimal_score == -sp.oo:
-                # this color is available and I have an optimal scoring value for placing this color
+        for factory, color in itertools.product(
+            range(AzulTiles.FACTORY_COUNT), range(AzulTiles.COLOR_COUNT)
+        ):
+            if self.tiles.factories[factory][color] > 0:
+                optimal_strategy = max(
+                    (state.strategy for state in self.branch_states_for(factory, color)),
+                    key=lambda strategy: self.scores_to_score(strategy[0]),
+                )
                 weighted_scores = tuple(
                     weighted_scores[i]
-                    + weights(self.tiles, factory, color) * optimal_scores[i]
+                    + weights(self.tiles, factory, color) * optimal_strategy[0][i]
                     for i in range(len(weighted_scores))
                 )
 
@@ -496,6 +472,50 @@ if __name__ == "__main__":
         )
         return state
 
-    STATE = make_state((AzulState.rational_strategy, AzulState.rational_strategy))
+    def WEIGHTS(tiles: AzulTiles, factory: int, color: int) -> float:
 
-    print(STATE.rational_strategy())
+        assert all(
+            tiles.factories[factory][color] == 0
+            for factory in range(AzulTiles.CENTER_PILE)
+            for color in range(6)
+        ), "Unexpected Tile Decision"
+        assert all(
+            tiles.factories[AzulTiles.CENTER_PILE][color] == 0
+            for color in {AzulTiles.YELLOW, AzulTiles.BLACK}
+        ), "Unexpected Tile Decision"
+        assert color in {
+            AzulTiles.BLUE,
+            AzulTiles.RED,
+            AzulTiles.CYAN,
+        }, "Unexpected Tile Decision"
+
+        if tiles.factories[factory][AzulTiles.RED] == 0:
+            if color == AzulTiles.CYAN:
+                return 0.8
+            else:
+                assert color == AzulTiles.BLUE, "Unexpected Tile Decision"
+                return 0.2
+
+        elif tiles.factories[factory][AzulTiles.BLUE] == 0:
+            if color == AzulTiles.CYAN:
+                return 0.8
+            else:
+                assert color == AzulTiles.RED, "Unexpected Tile Decision"
+                return 0.2
+        elif tiles.factories[factory][AzulTiles.CYAN] == 0:
+            if color == AzulTiles.BLUE:
+                return 0.9
+            else:
+                assert color == AzulTiles.RED, "Unexpected Tile Decision"
+                return 0.1
+        else:
+            assert False, "Unexpected Tile Decision"
+
+    STATE = make_state(
+        (
+            AzulState.rational_strategy,
+            lambda state: AzulState.bayesian_strategy(state, WEIGHTS),
+        )
+    )
+
+    print(STATE.history, STATE.strategy)
