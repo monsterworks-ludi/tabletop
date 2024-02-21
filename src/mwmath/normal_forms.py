@@ -2,9 +2,18 @@ import numpy as np
 from itertools import combinations
 
 
-def iterated_reduction(payoffs):
+def iterated_reduction(payoffs: np.ndarray) -> np.ndarray:
+    """
 
-    def dominated_rows():
+    :param payoffs: a numpy array of tuples which describe the payoff to (Rose, Colin)
+    :return: a numpy array with all dominated strategies removed
+    """
+
+    def dominated_rows() -> set[int]:
+        """
+
+        :return: the list of rows in the payoff matrix that are dominated by other rows
+        """
         rows = len(payoffs)
         cols = len(payoffs[0])
         result = set()
@@ -19,7 +28,11 @@ def iterated_reduction(payoffs):
                 result.add(row2)
         return result
 
-    def dominated_cols():
+    def dominated_cols() -> set[int]:
+        """
+
+        :return: the list of columns in the payoff matrix that are dominated by other columns
+        """
         rows = len(payoffs)
         cols = len(payoffs[0])
         result = set()
@@ -47,14 +60,19 @@ def iterated_reduction(payoffs):
     return payoffs
 
 
-def determine_saddle(reduced_payoffs):
+def determine_saddle(reduced_payoffs: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """
+
+    :param reduced_payoffs: a payoff matrix, assumed to be reduced
+    :return: the mixed strategy percentage for optimal play
+    """
     rows = len(reduced_payoffs)
     cols = len(reduced_payoffs[0])
     row_coefficients = [
         [reduced_payoffs[i, j][0] - reduced_payoffs[1, j][0] for j in range(1, cols)]
         for i in range(2, rows)
     ]
-    row_coefficients.append([1 for _ in range(1, cols)])
+    row_coefficients.append([np.array([1])[0] for _ in range(1, cols)])
     constant = [0 for _ in range(2, rows)]
     constant.append(1)
     x = np.linalg.solve(np.array(row_coefficients), np.array(constant))
@@ -63,7 +81,7 @@ def determine_saddle(reduced_payoffs):
         [reduced_payoffs[i, j][1] - reduced_payoffs[i, 1][1] for i in range(1, rows)]
         for j in range(2, cols)
     ]
-    col_coefficients.append([1 for _ in range(1, rows)])
+    col_coefficients.append([np.array([1])[0] for _ in range(1, rows)])
     constant = [0 for _ in range(2, cols)]
     constant.append(1)
     y = np.linalg.solve(np.array(col_coefficients), np.array(constant))
