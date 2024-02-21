@@ -4,6 +4,7 @@ from icecream import ic  # type: ignore
 
 IC_DEPTH = 0
 
+
 def undebug(func):
 
     @wraps(func)
@@ -18,7 +19,6 @@ def undebug(func):
         return res
 
     return wrapper_func
-
 
 
 def debug(func):

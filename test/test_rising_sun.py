@@ -26,6 +26,7 @@ def test_rising_sun_reduction():
         ),
     )
 
+
 def test_rising_sun_saddle():
     reduced_payoffs = np.array(
         [
@@ -36,7 +37,7 @@ def test_rising_sun_saddle():
         dtype=[("rose", "<i4"), ("colin", "<i4")],
     )
     bn_equilibrium = nf.determine_saddle(reduced_payoffs)
-    assert abs(bn_equilibrium[0] - 3/5) < 10**-15
+    assert abs(bn_equilibrium[0] - 3 / 5) < 10**-15
     # NOTE: In rising Sun, q is the probability of the second row, not the first.
     # This was done to match the orientation of the table with the heat map.
-    assert abs(bn_equilibrium[1] - (1- 3/5)) < 10**-15
+    assert abs(bn_equilibrium[1] - (1 - 3 / 5)) < 10**-15

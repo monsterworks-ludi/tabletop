@@ -127,10 +127,10 @@ class TestAzul:
         with check:
             # Figure 6.8, p. 127
             assert strategy.moves == (
-            "r (3): 5 -> 0.3",
-            "c (1): 5 -> 1.2",
-            "b (3): 5 -> 0.0",
-        )
+                "r (3): 5 -> 0.3",
+                "c (1): 5 -> 1.2",
+                "b (3): 5 -> 0.0",
+            )
 
     @staticmethod
     def test_bayesian() -> None:
@@ -158,11 +158,12 @@ class TestAzul:
         cyan_cummulative = (0, 0)
         for _ in range(trials):
 
-            state = TestAzul.state((
-                az.AzulState.rational_strategy,
-                lambda s: az.AzulState.monte_carlo_strategy(
-                    s, TestAzul.weights)
-                ))
+            state = TestAzul.state(
+                (
+                    az.AzulState.rational_strategy,
+                    lambda s: az.AzulState.monte_carlo_strategy(s, TestAzul.weights),
+                )
+            )
 
             # try blue
             blue_state = copy.deepcopy(state)
@@ -173,17 +174,23 @@ class TestAzul:
             blue_state.boards[0].broken_tiles += 2
             blue_state.player = 1
             blue_strat = blue_state.compute_outcome()
-            blue_cummulative = tuple(blue_cummulative[i] + blue_strat.scores[i] for i in range(2))
+            blue_cummulative = tuple(
+                blue_cummulative[i] + blue_strat.scores[i] for i in range(2)
+            )
 
             # try red
             red_state = copy.deepcopy(state)
             red_state.tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.RED] = 0
-            red_state.boards[0].patterns[4] = az.AzulBoard.PatternLine(5, az.AzulTiles.RED, 4)
+            red_state.boards[0].patterns[4] = az.AzulBoard.PatternLine(
+                5, az.AzulTiles.RED, 4
+            )
             red_state.boards[0].broken_tiles += 0
             red_state.player = 1
 
             red_strat = red_state.compute_outcome()
-            red_cummulative = tuple(red_cummulative[i] + red_strat.scores[i] for i in range(2))
+            red_cummulative = tuple(
+                red_cummulative[i] + red_strat.scores[i] for i in range(2)
+            )
 
             # try cyan
             cyan_state = copy.deepcopy(state)
@@ -195,7 +202,9 @@ class TestAzul:
             cyan_state.player = 1
 
             cyan_strat = cyan_state.compute_outcome()
-            cyan_cummulative = tuple(cyan_cummulative[i] + cyan_strat.scores[i] for i in range(2))
+            cyan_cummulative = tuple(
+                cyan_cummulative[i] + cyan_strat.scores[i] for i in range(2)
+            )
 
         blue_mean = tuple(blue_cummulative[i] / trials for i in range(2))
         red_mean = tuple(red_cummulative[i] / trials for i in range(2))
@@ -203,10 +212,16 @@ class TestAzul:
 
         with check:
             # Figure 6.10, p. 128
-            assert abs((blue_mean[0] - blue_mean[1]) - 2.0) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
+            assert (
+                abs((blue_mean[0] - blue_mean[1]) - 2.0) < 10**-1
+            ), f"Bad Seed: {seed} and Trials: {trials}"
         with check:
             # Figure 6.10, p. 128
-            assert abs((red_mean[0] - red_mean[1]) - 3.2) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
+            assert (
+                abs((red_mean[0] - red_mean[1]) - 3.2) < 10**-1
+            ), f"Bad Seed: {seed} and Trials: {trials}"
         with check:
             # Figure 6.10, p. 128
-            assert abs((cyan_mean[0] - cyan_mean[1]) - 3.4) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
+            assert (
+                abs((cyan_mean[0] - cyan_mean[1]) - 3.4) < 10**-1
+            ), f"Bad Seed: {seed} and Trials: {trials}"

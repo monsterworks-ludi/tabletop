@@ -54,8 +54,8 @@ def determine_saddle(reduced_payoffs):
         [reduced_payoffs[i, j][0] - reduced_payoffs[1, j][0] for j in range(1, cols)]
         for i in range(2, rows)
     ]
-    row_coefficients.append([1 for i in range(1, cols)])
-    constant = [0 for i in range(2, rows)]
+    row_coefficients.append([1 for _ in range(1, cols)])
+    constant = [0 for _ in range(2, rows)]
     constant.append(1)
     x = np.linalg.solve(np.array(row_coefficients), np.array(constant))
 
@@ -63,8 +63,8 @@ def determine_saddle(reduced_payoffs):
         [reduced_payoffs[i, j][1] - reduced_payoffs[i, 1][1] for i in range(1, rows)]
         for j in range(2, cols)
     ]
-    col_coefficients.append([1 for i in range(1, rows)])
-    constant = [0 for i in range(2, cols)]
+    col_coefficients.append([1 for _ in range(1, rows)])
+    constant = [0 for _ in range(2, cols)]
     constant.append(1)
     y = np.linalg.solve(np.array(col_coefficients), np.array(constant))
 
