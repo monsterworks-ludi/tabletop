@@ -1,5 +1,4 @@
 import sympy as sp
-import random
 import copy
 
 from pytest import mark
@@ -121,9 +120,13 @@ class TestAzul:
         state = TestAzul.state(
             (az.AzulState.rational_strategy, az.AzulState.rational_strategy)
         )
-        strategy = state.strategy
-        assert strategy.scores == (28, 25)
-        assert strategy.moves == (
+        strategy = state.outcome
+        with check:
+            # Figure 6.8, p. 127
+            assert strategy.scores == (28, 25)
+        with check:
+            # Figure 6.8, p. 127
+            assert strategy.moves == (
             "r (3): 5 -> 0.3",
             "c (1): 5 -> 1.2",
             "b (3): 5 -> 0.0",
@@ -138,9 +141,13 @@ class TestAzul:
                 lambda s: az.AzulState.bayesian_strategy(s, TestAzul.weights),
             )
         )
-        strategy = state.strategy
-        assert (strategy.scores[0] - strategy.scores[1]) == sp.Rational(34, 10)
-        assert strategy.moves == ("c (1): 5 -> 0.1", "*")
+        strategy = state.outcome
+        with check:
+            # Figure 6.10, p. 128
+            assert (strategy.scores[0] - strategy.scores[1]) == sp.Rational(34, 10)
+        with check:
+            # Figure 6.10, p.128
+            assert strategy.moves == ("c (1): 5 -> 0.1", "*")
 
     @staticmethod
     @mark.parametrize("trials", [10_000])
@@ -154,7 +161,7 @@ class TestAzul:
             state = TestAzul.state((
                 az.AzulState.rational_strategy,
                 lambda s: az.AzulState.monte_carlo_strategy(
-                    s, TestAzul.weights, random.random())
+                    s, TestAzul.weights)
                 ))
 
             # try blue
@@ -165,7 +172,7 @@ class TestAzul:
             )
             blue_state.boards[0].broken_tiles += 2
             blue_state.player = 1
-            blue_strat = blue_state.compute_strategy()
+            blue_strat = blue_state.compute_outcome()
             blue_cummulative = tuple(blue_cummulative[i] + blue_strat.scores[i] for i in range(2))
 
             # try red
@@ -175,7 +182,7 @@ class TestAzul:
             red_state.boards[0].broken_tiles += 0
             red_state.player = 1
 
-            red_strat = red_state.compute_strategy()
+            red_strat = red_state.compute_outcome()
             red_cummulative = tuple(red_cummulative[i] + red_strat.scores[i] for i in range(2))
 
             # try cyan
@@ -187,7 +194,7 @@ class TestAzul:
             cyan_state.boards[0].broken_tiles += 0
             cyan_state.player = 1
 
-            cyan_strat = cyan_state.compute_strategy()
+            cyan_strat = cyan_state.compute_outcome()
             cyan_cummulative = tuple(cyan_cummulative[i] + cyan_strat.scores[i] for i in range(2))
 
         blue_mean = tuple(blue_cummulative[i] / trials for i in range(2))
@@ -195,8 +202,11 @@ class TestAzul:
         cyan_mean = tuple(cyan_cummulative[i] / trials for i in range(2))
 
         with check:
+            # Figure 6.10, p. 128
             assert abs((blue_mean[0] - blue_mean[1]) - 2.0) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
         with check:
+            # Figure 6.10, p. 128
             assert abs((red_mean[0] - red_mean[1]) - 3.2) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
         with check:
+            # Figure 6.10, p. 128
             assert abs((cyan_mean[0] - cyan_mean[1]) - 3.4) < 10**-1, f"Bad Seed: {seed} and Trials: {trials}"
