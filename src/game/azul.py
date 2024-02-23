@@ -537,7 +537,7 @@ class AzulState:
         """
         optimal_outcome = max(
             (state.outcome for state in self.branch_states),
-            key=lambda strategy: self.scores_to_score(strategy.scores),
+            key=lambda strategy: self.scores_to_score(strategy.payoffs),
         )
         return optimal_outcome
 
@@ -563,7 +563,7 @@ class AzulState:
             if self.tiles.piles[factory][color] > 0:
                 optimal_outcome = max(
                     (state.outcome for state in self.branch_states_for(factory, color)),
-                    key=lambda strategy: self.scores_to_score(strategy.scores),
+                    key=lambda strategy: self.scores_to_score(strategy.payoffs),
                 )
                 weighted_scores = tuple(
                     weighted_scores[i]
@@ -601,7 +601,7 @@ class AzulState:
                             state.outcome
                             for state in self.branch_states_for(factory, color)
                         ),
-                        key=lambda strategy: self.scores_to_score(strategy.scores),
+                        key=lambda strategy: self.scores_to_score(strategy.payoffs),
                     )
                     ic(optimal_outcome)
                     break
