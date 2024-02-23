@@ -1,5 +1,5 @@
 import numpy as np
-import mwmath.normal_forms as nf
+import mwmath.normal_form as nf
 
 
 def test_rising_sun_reduction():
