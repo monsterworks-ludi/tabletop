@@ -1,6 +1,6 @@
 import sympy as sp
 import random
-from typing import Callable, Optional
+from typing import Callable, Optional, Generator
 from dataclasses import dataclass
 
 from icecream import ic  # type: ignore
@@ -9,57 +9,65 @@ from util.debug import checkup
 
 ic.disable()
 
+
+@dataclass
+class GameMove:
+    pass
+
+
+@dataclass
+class GameOutcome:
+    payoffs: tuple[sp.Rational, ...]
+    """ the player scores at the end of the game """
+    moves: Optional[tuple[GameMove, ...]]
+    """ the moves leading to those scores """
+
+    def __repr__(self) -> str:
+        return f"Payoffs: {self.payoffs}\nMoves: {self.moves}"
+
+
 class GameState:
     """As written, this assumes that players earn a score with the highest score winning the game."""
-
-    @dataclass
-    class Outcome:
-        payoffs: tuple[sp.Rational, ...]
-        """ the player scores at the end of the game """
-        moves: tuple[str, ...]
-        """ the moves leading to those scores """
 
     def __init__(
         self,
         player: int,
-        players: int,
         strategies: tuple[Callable, ...],
-        history: Optional[tuple[str, ...]] = None,
+        history: Optional[tuple[GameMove, ...]] = None,
     ) -> None:
         """
 
-        :param players: the number of players
         :param player: the player to make the next move
         :param strategies: the strategies for each player
         :param history: the sequence of moves leading to this point in the game
         """
-        self._players = players
         self._player = player
         self._strategies = strategies
         self._history = history if history else ()
-        self._stashed_outcome: Optional[GameState.Outcome] = None
+        self._stashed_outcome: Optional[GameOutcome] = None
 
     def check(self):
         assert self.player < self.players
 
     @property
-    @checkup
     def players(self) -> int:
-        return self._players
+        return len(self.strategies)
 
     @property
-    @checkup
     def player(self) -> int:
         return self._player
 
-    @property
+    @player.setter
     @checkup
+    def player(self, player: int) -> None:
+        self._player = player
+
+    @property
     def strategies(self) -> tuple[Callable, ...]:
         return self._strategies
 
     @property
-    @checkup
-    def history(self) -> Optional[tuple[str, ...]]:
+    def history(self) -> Optional[tuple[GameMove, ...]]:
         return self._history
 
     @checkup
@@ -70,8 +78,7 @@ class GameState:
         return string
 
     @property
-    @checkup
-    def outcome(self) -> Outcome:
+    def outcome(self) -> GameOutcome:
         """
 
         :return: the current outcome resulting from the strategies in the game
@@ -80,21 +87,19 @@ class GameState:
 
     @property
     def game_over(self) -> bool:
-        return True
+        raise NotImplementedError
 
-    def score_game(self) -> Outcome:
-        return self.Outcome(
-            tuple(sp.Integer(0) for _ in range(self.players)), tuple(self.history)
-        )
+    def game_outcome(self) -> GameOutcome:
+        raise NotImplementedError
 
     @checkup
-    def compute_outcome(self) -> Outcome:
+    def compute_outcome(self) -> GameOutcome:
         """
 
         :return: the outcome resulting from the strategies in the game
         """
         if self.game_over:
-            result = self.score_game()
+            result = self.game_outcome()
             self._stashed_outcome = result
         else:
             self._stashed_outcome = self.strategies[self.player](self)
@@ -102,57 +107,55 @@ class GameState:
         return self._stashed_outcome
 
     @property
-    @checkup
-    def branch_states(self):
-        return iter(())
+    def branch_states(self) -> Generator:
+        # Should generate GameStates
+        raise NotImplementedError
 
     @checkup
-    def rank(self, _: Outcome) -> sp.Rational:
-        return sp.Integer(0)
+    def rank(self, _: GameOutcome) -> sp.Rational:
+        raise NotImplementedError
 
     @checkup
-    def rational_strategy(self) -> Outcome:
+    def rational_strategy(self) -> GameOutcome:
         """
 
         :return: the outcome resulting from taking the rational max-min strategy
         """
         optimal_outcome = max(
-            (state.outcome for state in self.branch_states),
-            key=lambda outcome: self.rank(outcome.payoffs),
+            (branch.outcome for branch in self.branch_states),
+            key=lambda o: self.rank(o),
         )
         return optimal_outcome
 
-    def avg_payoff(self, weights):
-        accumulation = tuple(sp.Integer(0) for _ in range(self.players))
-        for state in self.branch_states:
-            accumulation = (
-                weights(state)[i] * state.outcome.payoffs[i] + accumulation[i]
-                for i in range(self.players)
-            )
-        return accumulation
+    @staticmethod
+    def bayesian_strategy(weights: Callable) -> Callable:
 
-    @checkup
-    def bayesian_strategy(self, weights: Callable) -> Outcome:
-        """
-        This computes the expected outcome based on the weights
+        def weighted_strategy(state: GameState) -> GameOutcome:
+            """
 
-        NOTE: bayesian is not completely random. Which tiles this strategy takes are random,
-        but once the tiles are determined, they are played optimally.
+            :param state: this is the state of the game before the move
+            :return: the probability that the move would be taken
+            """
+            expected_payoffs = tuple(sp.Integer(0) for _ in range(state.players))
+            for branch in state.branch_states:
+                move = branch.history[-1]
+                expected_payoffs = tuple(
+                    weights(state, move) * branch.outcome.payoffs[p]
+                    + expected_payoffs[p]
+                    for p in range(state.players)
+                )
 
-        :param weights: the probability of choosing each move
-        :return: the expected outcome resulting from the bayesian strategy
-        """
-        new_history = self.history + (f"*",)
-        average_payoffs = tuple(sp.Integer(0) for _ in range(self.players))
-        for state in self.branch_states:
-            average_payoffs = tuple(
-                weights(state) * state.outcome.payoffs[i] + average_payoffs[i]
-                for i in range(self.players)
-            )
-        return self.Outcome(average_payoffs, new_history)
+            if state.history is None:
+                new_history: tuple[GameMove, ...] = (GameMove(),)
+            else:
+                new_history = state.history + (GameMove(),)
 
-    @checkup
-    def monte_carlo_strategy(self, weights: Callable) -> Outcome:
+            return GameOutcome(expected_payoffs, new_history)
+
+        return weighted_strategy
+
+    @staticmethod
+    def monte_carlo_strategy(weights: Callable) -> Callable:
         """
         Decisions are made based on the weights function.
 
@@ -162,17 +165,27 @@ class GameState:
         :param weights: the probability of choosing each move
         :return: the outcome resulting from the monte_carlo strategy
         """
-        probability = random.random()
-        cummulative_probability = 0
-        outcome = None
-        for state in self.branch_states:
-            cummulative_probability += weights(state)
-            if probability <= cummulative_probability:
-                outcome = state.outcome
-                break
 
-        assert outcome is not None
-        return outcome
+        def weighted_strategy(state: GameState) -> GameOutcome:
+            """
+
+            :param state: this is the state of the game before the move
+            :return: the probability that the move would be taken
+            """
+            probability = random.random()
+            cummulative_probability = 0
+            outcome = None
+            for branch in state.branch_states:
+                move = branch.history[-1]
+                cummulative_probability += weights(state, move)
+                if probability <= cummulative_probability:
+                    outcome = branch.outcome
+                    break
+
+            return outcome
+
+        return weighted_strategy
+
 
 if __name__ == "__main__":
     pass

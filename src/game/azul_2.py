@@ -7,7 +7,8 @@ from dataclasses import dataclass
 
 from icecream import ic  # type: ignore
 
-from util.debug import checkup, icp, icprint, undebug
+from util.debug import checkup, icp
+from mwmath.extensive_form import GameMove, GameOutcome, GameState
 
 ic.disable()
 
@@ -192,7 +193,7 @@ class AzulBoard:
             ]
         )
         self.score = score
-        self.broken_tiles = broken_tiles
+        self.broken_tiles: int = broken_tiles
 
     def check(self) -> None:
         assert self.wall.shape == (self.ROW_COUNT, self.ROW_COUNT)
@@ -289,7 +290,6 @@ class AzulBoard:
             self.broken_tiles += broken_tiles
 
     @checkup
-    @undebug
     def score_tile(self, row: int, col: int) -> None:
         """
 
@@ -336,7 +336,6 @@ class AzulBoard:
         self.score += points
 
     @checkup
-    @undebug
     def score_round(self) -> None:
         """
 
@@ -368,7 +367,6 @@ class AzulBoard:
         self.score = max(self.score, sp.Integer(0))
 
     @checkup
-    @undebug
     def score_game(self) -> None:
         """
         Adds points to the player's score based on end of game scoring (rows, columns, and diagonals)
@@ -401,14 +399,18 @@ class AzulBoard:
         self.score += points
 
 
-class AzulState:
+@dataclass
+class AzulMove(GameMove):
+    color: int
+    count: int
+    factory: int
+    row: int
 
-    @dataclass
-    class Outcome:
-        scores: tuple[sp.Rational, ...]
-        """ the player scores at the end of the game """
-        moves: tuple[str, ...]
-        """ the moves leading to those scores """
+    def __repr__(self):
+        return f"{AzulTiles.color_string(self.color)} ({self.count}): Factory {self.factory} -> Row {self.row}"
+
+
+class AzulState(GameState):
 
     def __init__(
         self,
@@ -416,7 +418,7 @@ class AzulState:
         tiles: AzulTiles,
         boards: tuple[AzulBoard, ...],
         strategies: tuple[Callable, ...],
-        history: Optional[tuple[str, ...]] = None,
+        history: Optional[tuple[GameMove, ...]] = None,
     ) -> None:
         """
 
@@ -426,53 +428,37 @@ class AzulState:
         :param strategies: the strategies for each player
         :param history: the sequence of moves leading to this point in the game
         """
-        self.player = player
+        super().__init__(player, strategies, history)
         self.tiles = tiles
         self.boards = boards
-        self.strategies = strategies
-        self.history = history if history else ()
-        self.stashed_outcome: Optional[AzulState.Outcome] = None
 
     def check(self):
-        pass
+        super().check()
+        assert self.players == len(self.boards)
 
     @checkup
     def __repr__(self) -> str:
-        string = f"Player: {self.player}\n {self.tiles}\n {self.boards[0]}\n {self.boards[1]}\n"
-        if self.stashed_outcome is not None:
-            string += ", Scores: {self.strategy.scores}, Moves: {self.strategy.moves}"
+        string = super().__repr__()
+        string += f"\nTiles: {self.tiles}\n"
+        for player, board in enumerate(self.boards):
+            string += f"Player {player} Board: {self.boards[player]}\n"
         return string
 
     @property
     @checkup
-    def outcome(self) -> Outcome:
-        """
-
-        :return: the current outcome resulting from the strategies in the game
-        """
-        return self.stashed_outcome if self.stashed_outcome else self.compute_outcome()
+    def game_over(self) -> bool:
+        return not self.tiles
 
     @checkup
-    def compute_outcome(self) -> Outcome:
-        """
-
-        :return: the outcome resulting from the strategies in the game
-        """
-        if not self.tiles:
-            for board in self.boards:
-                board.score_round()
-                board.score_game()
-            result = self.Outcome(
-                tuple(board.score for board in self.boards),
-                self.history,
-            )
-            self.stashed_outcome = result
-        else:
-            self.stashed_outcome = self.strategies[self.player](self)
-        assert self.stashed_outcome is not None
-        return self.stashed_outcome
+    def game_outcome(self) -> GameOutcome:
+        for board in self.boards:
+            board.score_round()
+            board.score_game()
+        result = GameOutcome(tuple(board.score for board in self.boards), self.history)
+        return result
 
     @checkup
+    # maybe this should be optimal_branch_state_for() and just return one state
     def branch_states_for(self, factory: int, color: int):
         """
 
@@ -493,10 +479,12 @@ class AzulState:
                 if new_tiles.take(taken_color=color, factory=factory):
                     # they took the first player marker
                     self.boards[self.player].broken_tiles += 1
-                new_history = (
-                    *self.history,
-                    f"{AzulTiles.color_string(color)} ({count}): {factory} -> {self.player}.{row}",
-                )
+                if self.history is None:
+                    new_history: tuple[GameMove, ...] = (
+                        AzulMove(color, count, factory, row),
+                    )
+                else:
+                    new_history = self.history + (AzulMove(color, count, factory, row),)
                 state = AzulState(
                     new_player,
                     new_tiles,
@@ -511,109 +499,32 @@ class AzulState:
     def branch_states(self):
         """
 
-        :return: the possible states that continue the game from this state
+        :return: the possible states that continue the game from this state assuming best row selected
         """
         for factory in range(AzulTiles.COLOR_COUNT):
             if self.tiles.has_tiles(factory):
                 for color in range(AzulTiles.COLOR_COUNT):
-                    yield from self.branch_states_for(factory, color)
+                    if self.tiles.piles[factory][color] > 0:
+                        optimal_state = max(
+                            (branch for branch in self.branch_states_for(factory, color)),
+                            key=lambda s: self.rank(s.outcome)
+                        )
+                        yield optimal_state
 
     @checkup
-    def scores_to_score(self, scores: tuple[sp.Rational]) -> sp.Rational:
+    def rank(self, outcome: GameOutcome) -> sp.Rational:
         """
 
-        :param scores: the scores of each player
+        :param outcome: the outcome of this strategy
         :return: the worst relative score between this player and the other players
         """
         score = min(
-            scores[self.player] - scores[p]
-            for p in range(len(scores))
+            outcome.payoffs[self.player] - outcome.payoffs[p]
+            for p in range(self.players)
             if not p == self.player
         )
         return score
 
-    @checkup
-    def rational_strategy(self) -> Outcome:
-        """
-
-        :return: the outcome resulting from taking the rational max-min strategy
-        """
-        optimal_outcome = max(
-            (state.outcome for state in self.branch_states),
-            key=lambda strategy: self.scores_to_score(strategy.scores),
-        )
-        return optimal_outcome
-
-    @checkup
-    def bayesian_strategy(self, weights: Callable) -> Outcome:
-        """
-        This computes the expected outcome based on the weights
-
-        NOTE: bayesian is not completely random. Which tiles this strategy takes are random,
-        but once the tiles are determined, they are played optimally.
-
-        :param weights: the probability of choosing each move
-        :return: the expected outcome resulting from the bayesian strategy
-        """
-        weighted_scores = tuple(sp.Integer(0) for _ in range(len(self.boards)))
-        new_history = (
-            *self.history,
-            f"*",
-        )
-        for factory, color in itertools.product(
-            range(AzulTiles.FACTORY_COUNT), range(AzulTiles.COLOR_COUNT)
-        ):
-            if self.tiles.piles[factory][color] > 0:
-                optimal_outcome = max(
-                    (state.outcome for state in self.branch_states_for(factory, color)),
-                    key=lambda strategy: self.scores_to_score(strategy.scores),
-                )
-                ic((weights(self.tiles, factory, color) * optimal_outcome.scores[i] for i in range(len(weighted_scores))))
-                weighted_scores = tuple(
-                    weighted_scores[i]
-                    + weights(self.tiles, factory, color) * optimal_outcome.scores[i]
-                    for i in range(len(weighted_scores))
-                )
-                ic(weighted_scores)
-            ic("FINAL", weighted_scores)
-
-        return self.Outcome(weighted_scores, new_history)
-
-    @checkup
-    def monte_carlo_strategy(self, weights: Callable) -> Outcome:
-        """
-        Decisions are made based on the weights function.
-
-        NOTE: monte carlo is not completely random. Which tiles this strategy takes are random,
-        but once the tiles are determined, they are played optimally.
-
-        :param weights: the probability of choosing each move
-        :return: the outcome resulting from the monte_carlo strategy
-        """
-        probability = random.random()
-        cummulative_probability = 0
-        optimal_outcome = None
-        for factory, color in itertools.product(
-            range(AzulTiles.FACTORY_COUNT), range(AzulTiles.COLOR_COUNT)
-        ):
-            if self.tiles.piles[factory][color] > 0:
-                cummulative_probability += weights(self.tiles, factory, color)
-                ic(cummulative_probability)
-                ic(probability)
-                if probability < cummulative_probability:
-                    ic(f"Trying {color}")
-                    optimal_outcome = max(
-                        (
-                            state.outcome
-                            for state in self.branch_states_for(factory, color)
-                        ),
-                        key=lambda strategy: self.scores_to_score(strategy.scores),
-                    )
-                    ic(optimal_outcome)
-                    break
-        ic(optimal_outcome)
-        assert optimal_outcome is not None
-        return optimal_outcome
 
 def main():
 
@@ -673,67 +584,61 @@ def main():
             ]
         )
 
-        state = AzulState(
+        result = AzulState(
             0,
             tiles,
             (board_zero, board_one),
             strategies,
         )
-        return state
+        return result
 
-    # # RATIONAL STRATEGY SET UP
-    # state = make_state(
-    #     (
-    #         AzulState.rational_strategy,
-    #         AzulState.rational_strategy,
-    #     )
-    # )
-    #
-    # with icprint(True):
-    #     icp("START OF RATIONAL GAME")
-    #     ic(state.boards[0])
-    #     ic(state.boards[1])
-    #     ic(state.tiles)
-    #     icp("RUNNING RATIONAL GAME")
-    #     state.compute_outcome()
-    #     icp("END OF RATIONAL GAME")
-    #     ic(state.boards[0])
-    #     ic(state.boards[1])
-    #     ic(state.outcome)
+    #################### RATIONAL ##############################
 
-    # BAYESIAN STRATEGY SET UP
+    print("")
+    print("~~ START OF RATIONAL GAME " + 10 * "~")
+    state = make_state((AzulState.rational_strategy, AzulState.rational_strategy))
+    print(f"{state.boards[0]}")
+    print(f"{state.boards[1]}")
+    print(f"Tiles: {state.tiles}\n")
+    print("RUNNING RATIONAL GAME")
+    state.compute_outcome()
+    print("END OF RATIONAL GAME\n")
+    print(f"{state.boards[0]}")
+    print(f"{state.boards[1]}")
+    print(f"{state.outcome}\n")
 
-    def sample_weights(tiles: AzulTiles, factory: int, color: int) -> float:
+    #################### BAYESIAN ##############################
 
+    print("~~ START OF BAYESIAN GAME " + 10 * "~")
+
+    def sample_weights(initial_state: AzulState, move: AzulMove) -> sp.Rational:
+        piles = initial_state.tiles.piles
+        color = move.color
+        factory = move.factory
+        # all tiles are in the center pile
+        assert all(sum(piles[f]) == 0 for f in range(AzulTiles.CENTER_PILE))
+        # there are no yellow or black tiles
         assert all(
-            tiles.piles[factory][color] == 0
-            for factory in range(AzulTiles.CENTER_PILE)
-            for color in range(6)
-        ), "Unexpected Tile Decision"
-        assert all(
-            tiles.piles[AzulTiles.CENTER_PILE][color] == 0
-            for color in {AzulTiles.YELLOW, AzulTiles.BLACK}
-        ), "Unexpected Tile Decision"
-        assert color in {
-            AzulTiles.BLUE,
-            AzulTiles.RED,
-            AzulTiles.CYAN,
-        }, "Unexpected Tile Decision"
+            piles[AzulTiles.CENTER_PILE][c] == 0
+            for c in {AzulTiles.YELLOW, AzulTiles.BLACK}
+        )
+        assert color in {AzulTiles.BLUE, AzulTiles.RED, AzulTiles.CYAN}
+        assert factory == AzulTiles.CENTER_PILE
 
-        if tiles.piles[factory][AzulTiles.RED] == 0:
+        if piles[factory][AzulTiles.RED] == 0:
             if color == AzulTiles.CYAN:
                 return sp.Rational(8, 10)
             else:
                 assert color == AzulTiles.BLUE, "Unexpected Tile Decision"
                 return sp.Rational(2, 10)
 
-        elif tiles.piles[factory][AzulTiles.BLUE] == 0:
+        elif piles[factory][AzulTiles.BLUE] == 0:
             if color == AzulTiles.CYAN:
                 return sp.Rational(8, 10)
             else:
                 assert color == AzulTiles.RED, "Unexpected Tile Decision"
                 return sp.Rational(2, 10)
-        elif tiles.piles[factory][AzulTiles.CYAN] == 0:
+        elif piles[factory][AzulTiles.CYAN] == 0:
             if color == AzulTiles.BLUE:
                 return sp.Rational(9, 10)
             else:
@@ -743,85 +648,77 @@ def main():
             assert False, "Unexpected Tile Decision"
 
     state = make_state(
-        (
-            AzulState.rational_strategy,
-            lambda state: AzulState.bayesian_strategy(state, sample_weights),
-        )
+        (AzulState.rational_strategy, AzulState.bayesian_strategy(sample_weights))
     )
+    print(f"{state.boards[0]}")
+    print(f"{state.boards[1]}")
+    print(f"Tiles: {state.tiles}\n")
+    print("RUNNING BAYESIAN GAME")
+    state.compute_outcome()
+    print("END OF BAYESIAN GAME\n")
+    print(f"{state.boards[0]}")
+    print(f"{state.boards[1]}")
+    print(f"{state.outcome}\n")
 
-    with icprint(True):
-        icp("START OF BAYESIAN GAME")
-        ic(state.boards[0])
-        ic(state.boards[1])
-        ic(state.tiles)
-        icp("RUNNING BAYESIAN GAME")
-        state.compute_outcome()
-        icp("END OF BAYESIAN GAME")
-        ic(state.boards[0])
-        ic(state.boards[1])
-        ic(state.outcome)
+    #################### MONTE CARLO ##############################
+    print("~~ START OF MONTE CARLO GAMES " + 10 * "~")
+    print(f"{state.boards[0]}")
+    print(f"{state.boards[1]}")
+    print(f"Tiles: {state.tiles}\n")
+    print("RUNNING MONTE CARLO GAMES")
 
-    # MONTE CARLO TRIAL SET UP
-    #
-    # BLUE_SUM = (0, 0)
-    # RED_SUM = (0, 0)
-    # CYAN_SUM = (0, 0)
-    # TOTAL_TRIALS = 100
-    # for _ in range(TOTAL_TRIALS):
-    #
-    #     state = make_state(
-    #         (
-    #             AzulState.rational_strategy,
-    #             lambda state: AzulState.monte_carlo_strategy(state, sample_weights),
-    #         )
-    #     )
-    #
-    #     # try blue
-    #     BLUE_STATE = copy.deepcopy(state)
-    #     BLUE_STATE.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.BLUE] = 0
-    #     BLUE_STATE.boards[0].patterns[0] = AzulBoard.PatternLine(1, AzulTiles.BLUE, 1)
-    #     BLUE_STATE.boards[0].broken_tiles += 2
-    #     BLUE_STATE.player = 1
-    #     with icprint():
-    #         ic(BLUE_STATE)
-    #
-    #     BLUE_STRAT = BLUE_STATE.compute_outcome()
-    #     BLUE_SUM = tuple(BLUE_SUM[i] + BLUE_STRAT.scores[i] for i in range(2))
-    #
-    #     # try red
-    #     RED_STATE = copy.deepcopy(state)
-    #     RED_STATE.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.RED] = 0
-    #     RED_STATE.boards[0].patterns[4] = AzulBoard.PatternLine(5, AzulTiles.RED, 4)
-    #     RED_STATE.boards[0].broken_tiles += 0
-    #     RED_STATE.player = 1
-    #     with icprint():
-    #         ic(RED_STATE)
-    #
-    #     RED_STRAT = RED_STATE.compute_outcome()
-    #     RED_SUM = tuple(RED_SUM[i] + RED_STRAT.scores[i] for i in range(2))
-    #
-    #     # try cyan
-    #     CYAN_STATE = copy.deepcopy(state)
-    #     CYAN_STATE.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.CYAN] = 0
-    #     CYAN_STATE.boards[0].patterns[1] = AzulBoard.PatternLine(2, AzulTiles.CYAN, 1)
-    #     CYAN_STATE.boards[0].broken_tiles += 0
-    #     CYAN_STATE.player = 1
-    #     with icprint():
-    #         ic(CYAN_STATE)
-    #
-    #     CYAN_STRAT = CYAN_STATE.compute_outcome()
-    #     CYAN_SUM = tuple(CYAN_SUM[i] + CYAN_STRAT.scores[i] for i in range(2))
-    #
-    # BLUE_AVERAGE = tuple(BLUE_SUM[i] / TOTAL_TRIALS for i in range(2))
-    # RED_AVERAGE = tuple(RED_SUM[i] / TOTAL_TRIALS for i in range(2))
-    # CYAN_AVERAGE = tuple(CYAN_SUM[i] / TOTAL_TRIALS for i in range(2))
-    #
-    # with icprint(False):
-    #     ic(
-    #         BLUE_AVERAGE[0] - BLUE_AVERAGE[1],
-    #         RED_AVERAGE[0] - RED_AVERAGE[1],
-    #         CYAN_AVERAGE[0] - CYAN_AVERAGE[1],
-    #     )
+    blue_sum = (0, 0)
+    red_sum = (0, 0)
+    cyan_sum = (0, 0)
+    total_trials = 1_000
+    for _ in range(total_trials):
+
+        state = make_state(
+            (
+                AzulState.rational_strategy,
+                AzulState.monte_carlo_strategy(sample_weights),
+            )
+        )
+
+        # try blue
+        blue_state = copy.deepcopy(state)
+        blue_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.BLUE] = 0
+        blue_state.boards[0].patterns[0] = AzulBoard.PatternLine(1, AzulTiles.BLUE, 1)
+        blue_state.boards[0].broken_tiles += 2
+        blue_state.player = 1  #
+        blue_outcome = blue_state.outcome
+        blue_sum = tuple(blue_sum[i] + blue_outcome.payoffs[i] for i in range(2))
+
+        # try red
+        red_state = copy.deepcopy(state)
+        red_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.RED] = 0
+        red_state.boards[0].patterns[4] = AzulBoard.PatternLine(5, AzulTiles.RED, 4)
+        red_state.boards[0].broken_tiles += 0
+        red_state.player = 1  #
+        red_state.compute_outcome()
+        red_outcome = red_state.outcome
+        red_sum = tuple(red_sum[i] + red_outcome.payoffs[i] for i in range(2))
+
+        # try cyan
+        cyan_state = copy.deepcopy(state)
+        cyan_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.CYAN] = 0
+        cyan_state.boards[0].patterns[1] = AzulBoard.PatternLine(2, AzulTiles.CYAN, 1)
+        cyan_state.boards[0].broken_tiles += 0
+        cyan_state.player = 1  #
+        cyan_state.compute_outcome()
+        cyan_outcome = cyan_state.outcome
+        cyan_sum = tuple(cyan_sum[i] + cyan_outcome.payoffs[i] for i in range(2))
+
+    print("END OF MONTE CARLO GAMES")
+
+    blue_average = tuple(blue_sum[i] / total_trials for i in range(2))
+    red_average = tuple(red_sum[i] / total_trials for i in range(2))
+    cyan_average = tuple(cyan_sum[i] / total_trials for i in range(2))
+
+    print(f"Expected Blue Payoff: {1.0*blue_average[0] - blue_average[1]}")
+    print(f"Expected Red Payoff: {1.0*red_average[0] - red_average[1]}")
+    print(f"Expected Cyan Payoff: {1.0*cyan_average[0] - cyan_average[1]}")
+
 
 if __name__ == "__main__":
     main()
