@@ -29,6 +29,24 @@ class GameOutcome:
 class GameState:
     """As written, this assumes that players earn a score with the highest score winning the game."""
 
+    # ABSTRACT METHODS
+
+    @property
+    def game_over(self) -> bool:
+        # subclasses need to override this to return True when game is over
+        raise NotImplementedError
+
+    def compute_outcome(self) -> GameOutcome:
+        # subclasses need to override this to return the payoffs and moves when the game is over
+        raise NotImplementedError
+
+    @property
+    def branch_states(self) -> Generator:
+        # subclasses need to override this to yeild the possible game states to which this state can transition
+        raise NotImplementedError
+
+    # END ABSTRACT METHODS
+
     def __init__(
         self,
         player: int,
@@ -46,6 +64,13 @@ class GameState:
         self._history = history if history else ()
         self._stashed_outcome: Optional[GameOutcome] = None
 
+    @checkup
+    def __repr__(self) -> str:
+        string = f"Player: {self.player} of {self.players}"
+        if self._stashed_outcome is not None:
+            string += f", {self._stashed_outcome}"
+        return string
+
     def check(self):
         assert self.player < self.players
 
@@ -60,6 +85,7 @@ class GameState:
     @player.setter
     @checkup
     def player(self, player: int) -> None:
+        assert player < self.players
         self._player = player
 
     @property
@@ -70,62 +96,36 @@ class GameState:
     def history(self) -> Optional[tuple[GameMove, ...]]:
         return self._history
 
-    @checkup
-    def __repr__(self) -> str:
-        string = f"Player: {self.player}"
-        if self._stashed_outcome is not None:
-            string += f", Scores: {self._stashed_outcome.payoffs}, Moves: {self._stashed_outcome.moves}"
-        return string
-
     @property
     def outcome(self) -> GameOutcome:
         """
-
-        :return: the current outcome resulting from the strategies in the game
+        :return: the outcome of this game using the strategies
         """
-        return self._stashed_outcome if self._stashed_outcome else self.compute_outcome()
-
-    @property
-    def game_over(self) -> bool:
-        raise NotImplementedError
-
-    def game_outcome(self) -> GameOutcome:
-        raise NotImplementedError
-
-    @checkup
-    def compute_outcome(self) -> GameOutcome:
-        """
-
-        :return: the outcome resulting from the strategies in the game
-        """
-        if self.game_over:
-            result = self.game_outcome()
-            self._stashed_outcome = result
+        if self._stashed_outcome:
+            return self._stashed_outcome
+        elif self.game_over:
+            self._stashed_outcome = self.compute_outcome()
         else:
             self._stashed_outcome = self.strategies[self.player](self)
+
         assert self._stashed_outcome is not None
         return self._stashed_outcome
 
-    @property
-    def branch_states(self) -> Generator:
-        # Should generate GameStates
-        raise NotImplementedError
+    @staticmethod
+    def rational_strategy(rank: Callable) -> Callable:
 
-    @checkup
-    def rank(self, _: GameOutcome) -> sp.Rational:
-        raise NotImplementedError
+        def ranked_strategy(state: GameState) -> GameOutcome:
+            """
 
-    @checkup
-    def rational_strategy(self) -> GameOutcome:
-        """
+            :return: the outcome resulting from taking the rational max-min strategy
+            """
+            optimal_outcome = max(
+                (branch.outcome for branch in state.branch_states),
+                key=lambda o: rank(state.player, o),
+            )
+            return optimal_outcome
 
-        :return: the outcome resulting from taking the rational max-min strategy
-        """
-        optimal_outcome = max(
-            (branch.outcome for branch in self.branch_states),
-            key=lambda o: self.rank(o),
-        )
-        return optimal_outcome
+        return ranked_strategy
 
     @staticmethod
     def bayesian_strategy(weights: Callable) -> Callable:
@@ -181,7 +181,7 @@ class GameState:
                 if probability <= cummulative_probability:
                     outcome = branch.outcome
                     break
-
+            assert outcome is not None
             return outcome
 
         return weighted_strategy

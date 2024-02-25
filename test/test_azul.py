@@ -5,14 +5,15 @@ from pytest import mark
 from pytest_check import check  # type: ignore
 
 import mwmath.monte_carlo as mc
-import game.azul as az
+from mwmath.extensive_form import GameMove
+from game.azul import AzulTiles, AzulBoard, AzulState, AzulMove
 
 
 class TestAzul:
 
     @staticmethod
-    def state(strategies) -> az.AzulState:
-        board_zero = az.AzulBoard(
+    def state(strategies) -> AzulState:
+        board_zero = AzulBoard(
             0,
             sp.Matrix(
                 [
@@ -24,17 +25,17 @@ class TestAzul:
                 ]
             ),
             [
-                az.AzulBoard.PatternLine(1),
-                az.AzulBoard.PatternLine(2),
-                az.AzulBoard.PatternLine(3, az.AzulTiles.BLUE, 2),
-                az.AzulBoard.PatternLine(4),
-                az.AzulBoard.PatternLine(5, az.AzulTiles.RED, 1),
+                AzulBoard.PatternLine(1),
+                AzulBoard.PatternLine(2),
+                AzulBoard.PatternLine(3, AzulTiles.BLUE, 2),
+                AzulBoard.PatternLine(4),
+                AzulBoard.PatternLine(5, AzulTiles.RED, 1),
             ],
             sp.Integer(29),
             1,
         )
 
-        board_one = az.AzulBoard(
+        board_one = AzulBoard(
             1,
             sp.Matrix(
                 [
@@ -46,17 +47,17 @@ class TestAzul:
                 ]
             ),
             [
-                az.AzulBoard.PatternLine(1, az.AzulTiles.BLUE, 1),
-                az.AzulBoard.PatternLine(2),
-                az.AzulBoard.PatternLine(3),
-                az.AzulBoard.PatternLine(4, az.AzulTiles.CYAN, 2),
-                az.AzulBoard.PatternLine(5, az.AzulTiles.BLUE, 4),
+                AzulBoard.PatternLine(1, AzulTiles.BLUE, 1),
+                AzulBoard.PatternLine(2),
+                AzulBoard.PatternLine(3),
+                AzulBoard.PatternLine(4, AzulTiles.CYAN, 2),
+                AzulBoard.PatternLine(5, AzulTiles.BLUE, 4),
             ],
             sp.Integer(20),
             0,
         )
 
-        tiles = az.AzulTiles(
+        tiles = AzulTiles(
             [  # b, y, r, k, c, 1 #
                 [0, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0],
@@ -67,7 +68,7 @@ class TestAzul:
             ]
         )
 
-        state = az.AzulState(
+        state = AzulState(
             0,
             tiles,
             (board_zero, board_one),
@@ -76,41 +77,38 @@ class TestAzul:
         return state
 
     @staticmethod
-    def weights(tiles: az.AzulTiles, _: int, color: int) -> float:
-
+    def weights(initial_state: AzulState, move: AzulMove) -> sp.Rational:
+        piles = initial_state.tiles.piles
+        color = move.color
+        factory = move.factory
+        # all tiles are in the center pile
+        assert all(sum(piles[f]) == 0 for f in range(AzulTiles.CENTER_PILE))
+        # there are no yellow or black tiles
         assert all(
-            tiles.piles[factory][color] == 0
-            for factory in range(az.AzulTiles.CENTER_PILE)
-            for color in range(az.AzulTiles.COLOR_COUNT)
-        ), "Unexpected Tile Decision"
-        assert all(
-            tiles.piles[az.AzulTiles.CENTER_PILE][color] == 0
-            for color in {az.AzulTiles.YELLOW, az.AzulTiles.BLACK}
-        ), "Unexpected Tile Decision"
-        assert color in {
-            az.AzulTiles.BLUE,
-            az.AzulTiles.RED,
-            az.AzulTiles.CYAN,
-        }, "Unexpected Tile Decision"
+            piles[AzulTiles.CENTER_PILE][c] == 0
+            for c in {AzulTiles.YELLOW, AzulTiles.BLACK}
+        )
+        assert color in {AzulTiles.BLUE, AzulTiles.RED, AzulTiles.CYAN}
+        assert factory == AzulTiles.CENTER_PILE
 
-        if tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.RED] == 0:
-            if color == az.AzulTiles.CYAN:
+        if piles[factory][AzulTiles.RED] == 0:
+            if color == AzulTiles.CYAN:
                 return sp.Rational(8, 10)
             else:
-                assert color == az.AzulTiles.BLUE, "Unexpected Tile Decision"
+                assert color == AzulTiles.BLUE, "Unexpected Tile Decision"
                 return sp.Rational(2, 10)
 
-        elif tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.BLUE] == 0:
-            if color == az.AzulTiles.CYAN:
+        elif piles[factory][AzulTiles.BLUE] == 0:
+            if color == AzulTiles.CYAN:
                 return sp.Rational(8, 10)
             else:
-                assert color == az.AzulTiles.RED, "Unexpected Tile Decision"
+                assert color == AzulTiles.RED, "Unexpected Tile Decision"
                 return sp.Rational(2, 10)
-        elif tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.CYAN] == 0:
-            if color == az.AzulTiles.BLUE:
+        elif piles[factory][AzulTiles.CYAN] == 0:
+            if color == AzulTiles.BLUE:
                 return sp.Rational(9, 10)
             else:
-                assert color == az.AzulTiles.RED, "Unexpected Tile Decision"
+                assert color == AzulTiles.RED, "Unexpected Tile Decision"
                 return sp.Rational(1, 10)
         else:
             assert False, "Unexpected Tile Decision"
@@ -118,18 +116,18 @@ class TestAzul:
     @staticmethod
     def test_rational() -> None:
         state = TestAzul.state(
-            (az.AzulState.rational_strategy, az.AzulState.rational_strategy)
+            (AzulState.rational_strategy(AzulState.rank), AzulState.rational_strategy(AzulState.rank))
         )
-        strategy = state.outcome
+        outcome = state.outcome
         with check:
             # Figure 6.8, p. 127
-            assert strategy.scores == (28, 25)
+            assert outcome.payoffs == (28, 25)
         with check:
             # Figure 6.8, p. 127
-            assert strategy.moves == (
-                "r (3): 5 -> 0.3",
-                "c (1): 5 -> 1.2",
-                "b (3): 5 -> 0.0",
+            assert outcome.moves == (
+                AzulMove(AzulTiles.RED, 3, 5, 3),
+                AzulMove(AzulTiles.CYAN, 1, 5, 2),
+                AzulMove(AzulTiles.BLUE, 3, 5, 0)
             )
 
     @staticmethod
@@ -137,17 +135,20 @@ class TestAzul:
 
         state = TestAzul.state(
             (
-                az.AzulState.rational_strategy,
-                lambda s: az.AzulState.bayesian_strategy(s, TestAzul.weights),
+                AzulState.rational_strategy(AzulState.rank),
+                AzulState.bayesian_strategy(TestAzul.weights),
             )
         )
-        strategy = state.outcome
+        outcome = state.outcome
         with check:
             # Figure 6.10, p. 128
-            assert (strategy.scores[0] - strategy.scores[1]) == sp.Rational(34, 10)
+            assert (outcome.payoffs[0] - outcome.payoffs[1]) == sp.Rational(34, 10)
         with check:
             # Figure 6.10, p.128
-            assert strategy.moves == ("c (1): 5 -> 0.1", "*")
+            assert outcome.moves == (
+                AzulMove(AzulTiles.CYAN, 1, 5, 1),
+                GameMove()
+            )
 
     @staticmethod
     @mark.parametrize("trials", [10_000])
@@ -160,50 +161,48 @@ class TestAzul:
 
             state = TestAzul.state(
                 (
-                    az.AzulState.rational_strategy,
-                    lambda s: az.AzulState.monte_carlo_strategy(s, TestAzul.weights),
+                    AzulState.rational_strategy(AzulState.rank),
+                    AzulState.monte_carlo_strategy(TestAzul.weights),
                 )
             )
 
             # try blue
             blue_state = copy.deepcopy(state)
-            blue_state.tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.BLUE] = 0
-            blue_state.boards[0].patterns[0] = az.AzulBoard.PatternLine(
-                1, az.AzulTiles.BLUE, 1
+            blue_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.BLUE] = 0
+            blue_state.boards[0].patterns[0] = AzulBoard.PatternLine(
+                1, AzulTiles.BLUE, 1
             )
             blue_state.boards[0].broken_tiles += 2
             blue_state.player = 1
-            blue_strat = blue_state.compute_outcome()
+            blue_outcome = blue_state.outcome
             blue_cummulative = tuple(
-                blue_cummulative[i] + blue_strat.scores[i] for i in range(2)
+                blue_cummulative[i] + blue_outcome.payoffs[i] for i in range(2)
             )
 
             # try red
             red_state = copy.deepcopy(state)
-            red_state.tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.RED] = 0
-            red_state.boards[0].patterns[4] = az.AzulBoard.PatternLine(
-                5, az.AzulTiles.RED, 4
+            red_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.RED] = 0
+            red_state.boards[0].patterns[4] = AzulBoard.PatternLine(
+                5, AzulTiles.RED, 4
             )
             red_state.boards[0].broken_tiles += 0
             red_state.player = 1
-
-            red_strat = red_state.compute_outcome()
+            red_outcome = red_state.outcome
             red_cummulative = tuple(
-                red_cummulative[i] + red_strat.scores[i] for i in range(2)
+                red_cummulative[i] + red_outcome.payoffs[i] for i in range(2)
             )
 
             # try cyan
             cyan_state = copy.deepcopy(state)
-            cyan_state.tiles.piles[az.AzulTiles.CENTER_PILE][az.AzulTiles.CYAN] = 0
-            cyan_state.boards[0].patterns[1] = az.AzulBoard.PatternLine(
-                2, az.AzulTiles.CYAN, 1
+            cyan_state.tiles.piles[AzulTiles.CENTER_PILE][AzulTiles.CYAN] = 0
+            cyan_state.boards[0].patterns[1] = AzulBoard.PatternLine(
+                2, AzulTiles.CYAN, 1
             )
             cyan_state.boards[0].broken_tiles += 0
             cyan_state.player = 1
-
-            cyan_strat = cyan_state.compute_outcome()
+            cyan_outcome = cyan_state.outcome
             cyan_cummulative = tuple(
-                cyan_cummulative[i] + cyan_strat.scores[i] for i in range(2)
+                cyan_cummulative[i] + cyan_outcome.payoffs[i] for i in range(2)
             )
 
         blue_mean = tuple(blue_cummulative[i] / trials for i in range(2))
