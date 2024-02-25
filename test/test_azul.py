@@ -8,7 +8,6 @@ import mwmath.monte_carlo as mc
 from mwmath.extensive_form import GameMove
 from game.azul import AzulTiles, AzulBoard, AzulState, AzulMove
 
-
 class TestAzul:
 
     @staticmethod

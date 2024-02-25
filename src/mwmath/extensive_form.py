@@ -1,16 +1,17 @@
 import sympy as sp
 import random
+import copy
 from typing import Callable, Optional, Generator
 from dataclasses import dataclass
 
 from icecream import ic  # type: ignore
 
-from util.debug import checkup
+from util.debug import checkup, debug
 
 ic.disable()
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class GameMove:
     pass
 
@@ -185,6 +186,58 @@ class GameState:
             return outcome
 
         return weighted_strategy
+
+
+@dataclass(unsafe_hash=True)
+class TreeMove(GameMove):
+    branch: int
+
+    def __init__(self, branch: int) -> None:
+        self.branch = branch
+
+
+def tree_move_from_game_move(game_move: GameMove):
+    assert isinstance(game_move, TreeMove)
+    return TreeMove(game_move.branch)
+
+class BinTreeState(GameState):
+
+    # todo: as written, this requires a binary tree, should extend to non-binary options
+    LEFT = TreeMove(branch=0)
+    RIGHT = TreeMove(branch=1)
+
+    def __init__(
+        self,
+        player,
+        strategies,
+        payoffs: dict[tuple[TreeMove, ...], tuple[sp.Rational, ...]],
+        history=None,
+    ):
+        super().__init__(player, strategies, history)
+        self.payoffs = payoffs
+
+    @property
+    def game_over(self) -> bool:
+        return self.history in self.payoffs
+
+    def compute_outcome(self) -> GameOutcome:
+        assert self.history is not None
+        history = tuple(tree_move_from_game_move(move) for move in self.history)
+        return GameOutcome(self.payoffs[history], self.history)
+
+    @property
+    def branch_states(self):
+        for move in (BinTreeState.LEFT, BinTreeState.RIGHT):
+            new_player = (self.player + 1) % self.players
+            new_strategies = copy.deepcopy(self.strategies)
+            new_payoffs = copy.deepcopy(self.payoffs)
+            new_history = self.history + (move,)
+            new_state = BinTreeState(new_player, new_strategies, new_payoffs, new_history)
+            yield new_state
+
+    @staticmethod
+    def rank(player: int, outcome: GameOutcome) -> sp.Rational:
+        return outcome.payoffs[player]
 
 
 if __name__ == "__main__":
