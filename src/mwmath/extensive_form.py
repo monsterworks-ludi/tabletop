@@ -6,18 +6,20 @@ from dataclasses import dataclass
 
 from icecream import ic  # type: ignore
 
-from util.debug import checkup, debug
+from util.debug import checkup
 
 ic.disable()
 
 
 @dataclass(unsafe_hash=True)
 class GameMove:
+    """ Base class to track game moves. """
     pass
 
 
 @dataclass
 class GameOutcome:
+    """ Base class to track game outcomes (the payoffs and the moves) leading to those payoffs. """
     payoffs: tuple[sp.Rational, ...]
     """ the player scores at the end of the game """
     moves: Optional[tuple[GameMove, ...]]
@@ -28,25 +30,9 @@ class GameOutcome:
 
 
 class GameState:
-    """As written, this assumes that players earn a score with the highest score winning the game."""
+    """ Abstract class representing the state of a game. """
 
-    # ABSTRACT METHODS
-
-    @property
-    def game_over(self) -> bool:
-        # subclasses need to override this to return True when game is over
-        raise NotImplementedError
-
-    def compute_outcome(self) -> GameOutcome:
-        # subclasses need to override this to return the payoffs and moves when the game is over
-        raise NotImplementedError
-
-    @property
-    def branch_states(self) -> Generator:
-        # subclasses need to override this to yeild the possible game states to which this state can transition
-        raise NotImplementedError
-
-    # END ABSTRACT METHODS
+    # region dunder methods
 
     def __init__(
         self,
@@ -64,6 +50,7 @@ class GameState:
         self._strategies = strategies
         self._history = history if history else ()
         self._stashed_outcome: Optional[GameOutcome] = None
+        self._stashed_hash: Optional[int] = None
 
     @checkup
     def __repr__(self) -> str:
@@ -72,45 +59,101 @@ class GameState:
             string += f", {self._stashed_outcome}"
         return string
 
+    @checkup
+    def __hash__(self) -> int:
+        return hash((self._player, self._strategies, self._history))
+
+    # endregion
+
+    # region debugging
+
     def check(self):
         assert self.player < self.players
 
+    # endregion
+
+    # region properties
+
     @property
     def players(self) -> int:
+        """ the number of players in the game """
         return len(self.strategies)
 
     @property
     def player(self) -> int:
+        """ the current player in the game """
         return self._player
 
     @player.setter
     @checkup
     def player(self, player: int) -> None:
+        """ the current player in the game is mutable """
         assert player < self.players
         self._player = player
+        # invalidate the stashed_outcome
+        self._stashed_outcome = None
 
     @property
     def strategies(self) -> tuple[Callable, ...]:
+        """ the strategies for each player in the game """
         return self._strategies
 
     @property
     def history(self) -> Optional[tuple[GameMove, ...]]:
+        """ the history of moves that lead to this state in the game """
         return self._history
 
     @property
     def outcome(self) -> GameOutcome:
         """
+        This assumes that if hash(self) has not changed, then the outcome has not changed.
+        To protect against hash collisions, users can call clear_stashed_outcome() before calling outcome()
+
         :return: the outcome of this game using the strategies
         """
-        if self._stashed_outcome:
+        if self._stashed_outcome and self._stashed_hash == hash(self):
             return self._stashed_outcome
         elif self.game_over:
             self._stashed_outcome = self.compute_outcome()
         else:
             self._stashed_outcome = self.strategies[self.player](self)
 
+        self._stashed_hash = hash(self)
         assert self._stashed_outcome is not None
         return self._stashed_outcome
+
+    def clear_stashed_outcome(self) -> None:
+        """ This should be called to clear out the stashed outcome before calling outcome if the game state has changed in any way. """
+        self._stashed_outcome = None
+
+    # end region
+
+    # region Abstract Methods
+
+    @property
+    def game_over(self) -> bool:
+        """ Subclasses need to override this to return True when game is over
+
+        :return: True if the game is over and False otherwise
+        """
+        raise NotImplementedError
+
+    def compute_outcome(self) -> GameOutcome:
+        """ Subclasses need to override this to return the game outcome when the game is over.
+
+        :return: the GameOutcome that results from playing the state's strategies until the game ends.
+        """
+        raise NotImplementedError
+
+    @property
+    def branch_states(self) -> Generator:
+        """ Subclasses need to override this to yeild the possible game states to which this state can transition.
+
+        :return: the next possible game state to which this game state can transition
+        """
+        raise NotImplementedError
+
+    # endregion
 
     @staticmethod
     def rational_strategy(rank: Callable) -> Callable:

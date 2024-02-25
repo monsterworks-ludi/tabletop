@@ -51,7 +51,15 @@ class AzulTiles:
     # piles = [pile, pile, pile, ..., pile]
 
     def __init__(self, piles) -> None:
-        self.piles = piles
+        self._piles = piles
+
+    @property
+    def piles(self) -> list[list[int]]:
+        return self._piles
+
+    def __hash__(self) -> int:
+        piles = tuple(tuple(pile) for pile in self._piles)
+        return hash(piles)
 
     def check(self) -> None:
         assert len(self.piles) == AzulTiles.FACTORY_COUNT
@@ -141,6 +149,9 @@ class AzulBoard:
         count: int = 0
         """ the number of tiles in the pattern line """
 
+        def __hash__(self) -> int:
+            return hash((self.capacity, self.color, self.count))
+
     @staticmethod
     def column(*, color, row) -> int:
         """
@@ -177,9 +188,9 @@ class AzulBoard:
         :param score: the player's current score
         :param broken_tiles: the number of broken tiles on the player's board
         """
-        self.player = player
-        self.wall = wall if wall else sp.zeros(self.ROW_COUNT, self.ROW_COUNT)
-        self.patterns = (
+        self._player = player
+        self._wall = wall if wall else sp.zeros(self.ROW_COUNT, self.ROW_COUNT)
+        self._patterns = (
             patterns
             if patterns
             else [
@@ -190,8 +201,43 @@ class AzulBoard:
                 self.PatternLine(5),
             ]
         )
-        self.score = score
-        self.broken_tiles: int = broken_tiles
+        self._score = score
+        self._broken_tiles: int = broken_tiles
+
+    def __hash__(self) -> int:
+        wall = sp.ImmutableMatrix(self._wall)
+        patterns = tuple(self._patterns)
+        return hash((self._player, wall, patterns, self._score, self._broken_tiles))
+
+    @property
+    def player(self) -> int:
+        return self._player
+
+    @property
+    def wall(self) -> sp.Matrix:
+        assert self._wall is not None
+        return self._wall
+
+    @property
+    def patterns(self) -> list[PatternLine]:
+        assert self._patterns is not None
+        return self._patterns
+
+    @property
+    def score(self) -> sp.Rational:
+        return self._score
+
+    @score.setter
+    def score(self, score: sp.Rational) -> None:
+        self._score = score
+
+    @property
+    def broken_tiles(self) -> int:
+        return self._broken_tiles
+
+    @broken_tiles.setter
+    def broken_tiles(self, broken_tiles: int) -> None:
+        self._broken_tiles = broken_tiles
 
     def check(self) -> None:
         assert self.wall.shape == (self.ROW_COUNT, self.ROW_COUNT)
@@ -407,6 +453,9 @@ class AzulMove(GameMove):
     def __repr__(self):
         return f"{AzulTiles.color_string(self.color)} ({self.count}): Factory {self.factory} -> Row {self.row}"
 
+    def __hash__(self):
+        return hash((self.color, self.count, self.factory, self.row))
+
 
 class AzulState(GameState):
 
@@ -427,12 +476,11 @@ class AzulState(GameState):
         :param history: the sequence of moves leading to this point in the game
         """
         super().__init__(player, strategies, history)
-        self.tiles = tiles
-        self.boards = boards
+        self._tiles = tiles
+        self._boards = boards
 
-    def check(self):
-        super().check()
-        assert self.players == len(self.boards)
+    def __hash__(self) -> int:
+        return hash((super().__hash__(), self._tiles, self._boards))
 
     @checkup
     def __repr__(self) -> str:
@@ -441,6 +489,18 @@ class AzulState(GameState):
         for player, board in enumerate(self.boards):
             string += f"Player {player} Board: {self.boards[player]}\n"
         return string
+
+    def check(self):
+        super().check()
+        assert self.players == len(self.boards)
+
+    @property
+    def tiles(self) -> AzulTiles:
+        return self._tiles
+
+    @property
+    def boards(self) -> tuple[AzulBoard, ...]:
+        return self._boards
 
     @property
     @checkup

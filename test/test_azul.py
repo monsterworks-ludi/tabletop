@@ -173,6 +173,7 @@ class TestAzul:
             )
             blue_state.boards[0].broken_tiles += 2
             blue_state.player = 1
+            blue_state.clear_stashed_outcome()
             blue_outcome = blue_state.outcome
             blue_cummulative = tuple(
                 blue_cummulative[i] + blue_outcome.payoffs[i] for i in range(2)
@@ -186,6 +187,7 @@ class TestAzul:
             )
             red_state.boards[0].broken_tiles += 0
             red_state.player = 1
+            red_state.clear_stashed_outcome()
             red_outcome = red_state.outcome
             red_cummulative = tuple(
                 red_cummulative[i] + red_outcome.payoffs[i] for i in range(2)
@@ -199,6 +201,7 @@ class TestAzul:
             )
             cyan_state.boards[0].broken_tiles += 0
             cyan_state.player = 1
+            cyan_state.clear_stashed_outcome()
             cyan_outcome = cyan_state.outcome
             cyan_cummulative = tuple(
                 cyan_cummulative[i] + cyan_outcome.payoffs[i] for i in range(2)
