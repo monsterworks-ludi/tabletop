@@ -11,11 +11,9 @@ from util.debug import checkup
 ic.disable()
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(frozen=True)
 class GameMove:
-    """ Base class to track game moves. """
     pass
-
 
 @dataclass
 class GameOutcome:
@@ -59,8 +57,11 @@ class GameState:
             string += f", {self._stashed_outcome}"
         return string
 
+    def __hash__(self):
+        raise NotImplementedError
+
     @checkup
-    def __hash__(self) -> int:
+    def hash(self) -> int:
         return hash((self._player, self._strategies, self._history))
 
     # endregion
@@ -111,19 +112,20 @@ class GameState:
 
         :return: the outcome of this game using the strategies
         """
-        if self._stashed_outcome and self._stashed_hash == hash(self):
+        if self._stashed_outcome and self._stashed_hash == self.hash():
             return self._stashed_outcome
         elif self.game_over:
             self._stashed_outcome = self.compute_outcome()
         else:
             self._stashed_outcome = self.strategies[self.player](self)
 
-        self._stashed_hash = hash(self)
+        self._stashed_hash = self.hash()
         assert self._stashed_outcome is not None
         return self._stashed_outcome
 
     def clear_stashed_outcome(self) -> None:
-        """ This should be called to clear out the stashed outcome before calling outcome if the game state has changed in any way. """
+        """ This can be called to clear out the stashed outcome before calling outcome
+        to protect against hash collisions. """
         self._stashed_outcome = None
 
     # end region
@@ -231,23 +233,26 @@ class GameState:
         return weighted_strategy
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(frozen=True)
 class TreeMove(GameMove):
     branch: int
 
-    def __init__(self, branch: int) -> None:
-        self.branch = branch
-
-
 def tree_move_from_game_move(game_move: GameMove):
+    """
+
+    :param game_move: a generic GameMove
+    :raise AssertionError: if game_move is not a TreeMove
+    :return: returns a TreeMove object if game_move is a TreeMove
+    """
     assert isinstance(game_move, TreeMove)
     return TreeMove(game_move.branch)
 
 class BinTreeState(GameState):
 
-    # todo: as written, this requires a binary tree, should extend to non-binary options
     LEFT = TreeMove(branch=0)
+    """ Left branch in a binary tree """
     RIGHT = TreeMove(branch=1)
+    """ Right branch in a binary tree """
 
     def __init__(
         self,
@@ -256,20 +261,39 @@ class BinTreeState(GameState):
         payoffs: dict[tuple[TreeMove, ...], tuple[sp.Rational, ...]],
         history=None,
     ):
+        """
+
+        :param player: the player number
+        :param strategies: the strategies being used
+        :param payoffs: the payoffs for each final state of the game
+        :param history: the history of the game up to this state
+        """
         super().__init__(player, strategies, history)
         self.payoffs = payoffs
 
     @property
     def game_over(self) -> bool:
+        """
+        A Binary Tree Game ends when it reaches an state with payoffs
+        :return:
+        """
         return self.history in self.payoffs
 
     def compute_outcome(self) -> GameOutcome:
+        """
+
+        :return: the payout determined by the previous moves and the state's payoffs
+        """
         assert self.history is not None
         history = tuple(tree_move_from_game_move(move) for move in self.history)
         return GameOutcome(self.payoffs[history], self.history)
 
     @property
     def branch_states(self):
+        """
+
+        :return: the next state (from either choosing the LEFT or RIGHT branch
+        """
         for move in (BinTreeState.LEFT, BinTreeState.RIGHT):
             new_player = (self.player + 1) % self.players
             new_strategies = copy.deepcopy(self.strategies)
@@ -280,6 +304,12 @@ class BinTreeState(GameState):
 
     @staticmethod
     def rank(player: int, outcome: GameOutcome) -> sp.Rational:
+        """
+
+        :param player: the player to whom the payoff is being made
+        :param outcome: the outcome to score
+        :return: for Binary Tree Games, this is the appropriate value in the payoffs
+        """
         return outcome.payoffs[player]
 
 

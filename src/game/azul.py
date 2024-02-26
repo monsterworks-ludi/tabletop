@@ -12,6 +12,7 @@ ic.disable()
 
 
 class AzulTiles:
+    """ Reprents the five factory piles and the center pile of tiles in an Azul game. """
 
     EMPTY = -1
     """ Represents an empty space """
@@ -58,6 +59,9 @@ class AzulTiles:
         return self._piles
 
     def __hash__(self) -> int:
+        raise NotImplementedError
+
+    def hash(self) -> int:
         piles = tuple(tuple(pile) for pile in self._piles)
         return hash(piles)
 
@@ -129,7 +133,6 @@ class AzulTiles:
         )
         return nonempty
 
-
 class AzulBoard:
 
     BROKEN_TILES_POINTS = [0, -1, -2, -4, -6, -8, -11, -14]
@@ -150,6 +153,9 @@ class AzulBoard:
         """ the number of tiles in the pattern line """
 
         def __hash__(self) -> int:
+            raise NotImplementedError
+
+        def hash(self) -> int:
             return hash((self.capacity, self.color, self.count))
 
     @staticmethod
@@ -205,8 +211,13 @@ class AzulBoard:
         self._broken_tiles: int = broken_tiles
 
     def __hash__(self) -> int:
+        """ AzulBoard is mutable, so this is intentionally unimplemented. """
+        raise NotImplementedError
+
+    def hash(self) -> int:
+        """ returns a hash used to quickly check if our values have changed. """
         wall = sp.ImmutableMatrix(self._wall)
-        patterns = tuple(self._patterns)
+        patterns = tuple(pattern.hash() for pattern in self._patterns)
         return hash((self._player, wall, patterns, self._score, self._broken_tiles))
 
     @property
@@ -443,8 +454,9 @@ class AzulBoard:
         self.score += points
 
 
-@dataclass
+@dataclass(frozen=True)
 class AzulMove(GameMove):
+    """ A move in Azul takes (count) tiles with color (color) from factory (factory) and places them in pattern (row)"""
     color: int
     count: int
     factory: int
@@ -452,9 +464,6 @@ class AzulMove(GameMove):
 
     def __repr__(self):
         return f"{AzulTiles.color_string(self.color)} ({self.count}): Factory {self.factory} -> Row {self.row}"
-
-    def __hash__(self):
-        return hash((self.color, self.count, self.factory, self.row))
 
 
 class AzulState(GameState):
@@ -480,7 +489,16 @@ class AzulState(GameState):
         self._boards = boards
 
     def __hash__(self) -> int:
-        return hash((super().__hash__(), self._tiles, self._boards))
+        """ AzulState is mutable, so this is intentionally unimplemented """
+        raise NotImplementedError
+
+    def hash(self) -> int:
+        """
+        This is used to quickly check if the state has changed.
+
+        :return: the hash of the current state
+        """
+        return hash((super().hash(), self._tiles.hash(), tuple(board.hash() for board in self._boards)))
 
     @checkup
     def __repr__(self) -> str:
@@ -658,7 +676,12 @@ def main():
 
     print("")
     print("~~ START OF RATIONAL GAME " + 10 * "~")
-    state = make_state((AzulState.rational_strategy(AzulState.rank), AzulState.rational_strategy(AzulState.rank)))
+    state = make_state(
+        (
+            AzulState.rational_strategy(AzulState.rank),
+            AzulState.rational_strategy(AzulState.rank),
+        )
+    )
     print(f"{state.boards[0]}")
     print(f"{state.boards[1]}")
     print(f"Tiles: {state.tiles}\n")
@@ -705,7 +728,10 @@ def main():
             assert False, "Unexpected Tile Decision"
 
     state = make_state(
-        (AzulState.rational_strategy(AzulState.rank), AzulState.bayesian_strategy(sample_weights))
+        (
+            AzulState.rational_strategy(AzulState.rank),
+            AzulState.bayesian_strategy(sample_weights),
+        )
     )
     print(f"{state.boards[0]}")
     print(f"{state.boards[1]}")
