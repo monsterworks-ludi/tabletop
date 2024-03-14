@@ -1,16 +1,30 @@
 from collections import defaultdict
 
 import sympy as sp
-from icecream import ic  # type: ignore
 from pytest import mark
 
-import mwmath.monte_carlo as mc
-import mwmath.markov as mkv
-import game.rebellion as rb
+from mwmath.monte_carlo import set_seed
+from mwmath.markov import (
+    rat_mat, transition_matrix,
+    mat_max,
+    to_infinity,
+    markov,
+    markov_n,
+    is_distribution, distribution_to_column,
+)
+
+from mwgame.rebellion import (
+    roll_y_wing_attack, roll_tie_fighter_attack,
+    apply_hits_to_y_wing, apply_hits_to_tie_fighter,
+    exciting_transition_distribution,
+    combat_transition,
+    EXCITING_BATTLE_STATES,
+    run_combat,
+)
 from mwmath.rounding import round_to
 
 class TestSimple:
-    TIE_Y_MAT = mkv.rat_mat(
+    TIE_Y_MAT = rat_mat(
         [[5, 0, 0, 0], [5, 12, 0, 0], [1, 0, 12, 0], [1, 0, 0, 12]], 12
     )
 
@@ -18,20 +32,20 @@ class TestSimple:
     def test_tie_y_powers() -> None:
         p = TestSimple.TIE_Y_MAT
         # Example, p. 114
-        assert p**2 == mkv.rat_mat(
+        assert p**2 == rat_mat(
             [[25, 0, 0, 0], [85, 144, 0, 0], [17, 0, 144, 0], [17, 0, 0, 144]], 144
         )
         # Example, p. 115
-        assert (p**2)[:, 0] == mkv.rat_mat([[25], [85], [17], [17]], 144)
+        assert (p**2)[:, 0] == rat_mat([[25], [85], [17], [17]], 144)
         rounded_tenth = ((p**10)[:, 0]).applyfunc(lambda x: round(x, 5))
         # Example, p.115
         assert (
-            mkv.mat_max(
+            mat_max(
                 rounded_tenth - sp.Matrix([[0.00016], [0.71417], [0.14283], [0.14283]])
             )
         ) < 0.000005
         # Example, p. 115
-        assert mkv.to_infinity(p)[:, 0] == mkv.rat_mat([[0], [5], [1], [1]], 7)
+        assert to_infinity(p)[:, 0] == rat_mat([[0], [5], [1], [1]], 7)
 
     @staticmethod
     def test_tie_y_mean() -> None:
@@ -43,30 +57,30 @@ class TestSimple:
 
     @staticmethod
     def test_tie_y_formula() -> None:
-        q = mkv.rat_mat([[5]], 12)
-        r = mkv.rat_mat([[5], [1], [1]], 12)
-        n = mkv.markov_n(q)
+        q = rat_mat([[5]], 12)
+        r = rat_mat([[5], [1], [1]], 12)
+        n = markov_n(q)
         rn = r * n
         on = sp.ones(1, n.rows) * n
         # Example, p. 116
-        assert rn == mkv.rat_mat([[5], [1], [1]], 7)
+        assert rn == rat_mat([[5], [1], [1]], 7)
         # Example, p. 116
-        assert on == mkv.rat_mat([[12]], 7)
+        assert on == rat_mat([[12]], 7)
 
     @staticmethod
     @mark.parametrize("power", [5])
     def test_tie_y_markov_powers(power: int) -> None:
-        q = mkv.rat_mat([[5]], 12, exact=False)
-        r = mkv.rat_mat([[5], [1], [1]], 12, exact=False)
-        p = mkv.markov(q, r)
-        n = mkv.markov_n(q)
+        q = rat_mat([[5]], 12, exact=False)
+        r = rat_mat([[5], [1], [1]], 12, exact=False)
+        p = markov(q, r)
+        n = markov_n(q)
         ppow = p**power
-        assert mkv.mat_max(ppow - mkv.markov(sp.zeros(q.rows, q.cols), r * n)) < 0.05
+        assert mat_max(ppow - markov(sp.zeros(q.rows, q.cols), r * n)) < 0.05
 
     @staticmethod
     @mark.parametrize("trials", [100_000])
     def test_tie_y_monte_carlo(trials) -> None:
-        seed = mc.set_seed()
+        seed = set_seed()
         both_destroyed = 0
         tie_destroyed = 0
         y_destroyed = 0
@@ -74,11 +88,11 @@ class TestSimple:
             tie_damage = 0
             y_damage = 0
             while tie_damage == 0 and y_damage == 0:
-                y_wing_hits = rb.roll_y_wing_attack()
-                tie_fighter_hits = rb.roll_tie_fighter_attack()
+                y_wing_hits = roll_y_wing_attack()
+                tie_fighter_hits = roll_tie_fighter_attack()
 
-                tie_damage = rb.apply_hits_to_tie_fighter(tie_damage, y_wing_hits)
-                y_damage = rb.apply_hits_to_y_wing(y_damage, tie_fighter_hits)
+                tie_damage = apply_hits_to_tie_fighter(tie_damage, y_wing_hits)
+                y_damage = apply_hits_to_y_wing(y_damage, tie_fighter_hits)
             if tie_damage == 1 and y_damage == 1:
                 both_destroyed += 1
             elif tie_damage == 1:
@@ -641,58 +655,56 @@ class TestExciting:
         p = TestExciting.EXPECTED_EXCITING_P.applyfunc(round_to(2))
         rounded_p = TestExciting.EXPECTED_EXCITING_ROUNDED_P
         # Fig 5.7, p. 118
-        assert mkv.mat_max(p - rounded_p) < 0.005
+        assert mat_max(p - rounded_p) < 0.005
 
         n = TestExciting.EXPECTED_EXCITING_N.applyfunc(round_to(2))
         rounded_n = TestExciting.EXPECTED_EXCITING_ROUNDED_N
         # Example, p. 119
-        assert mkv.mat_max(n - rounded_n) < 0.005
+        assert mat_max(n - rounded_n) < 0.005
 
         rn = TestExciting.EXPECTED_EXCITING_RN.applyfunc(round_to(2))
         rounded_rn = TestExciting.EXPECTED_EXCITING_ROUNDED_RN
         # Example, p. 119
-        assert mkv.mat_max(rn - rounded_rn) < 0.005
+        assert mat_max(rn - rounded_rn) < 0.005
 
         oner = TestExciting.EXPECTED_EXCITING_ONER.applyfunc(round_to(1))
         rounded_oner = TestExciting.EXPECTED_EXCITING_ROUNDED_ONER
         # Example, p. 119
-        assert mkv.mat_max(oner - rounded_oner) < 0.005
+        assert mat_max(oner - rounded_oner) < 0.005
 
     @staticmethod
     def test_exciting_battle_markov():
-        p = mkv.transition_matrix(14, rb.exciting_transition_distribution)
+        p = transition_matrix(14, exciting_transition_distribution)
         # Fig 5.7, p. 118
-        ic(p - TestExciting.EXPECTED_EXCITING_P)
-        assert mkv.mat_max(p - TestExciting.EXPECTED_EXCITING_P) < 10**-15
+        assert mat_max(p - TestExciting.EXPECTED_EXCITING_P) < 10**-15
         q = p[0:10, 0:10]
         r = p[10:14, 0:10]
-        n = mkv.markov_n(q)
+        n = markov_n(q)
         # Example, p. 119
-        assert mkv.mat_max(n - TestExciting.EXPECTED_EXCITING_N) < 10**-15
+        assert mat_max(n - TestExciting.EXPECTED_EXCITING_N) < 10**-15
         # Example, p. 119
-        assert mkv.mat_max(r * n - TestExciting.EXPECTED_EXCITING_RN) < 10**-15
+        assert mat_max(r * n - TestExciting.EXPECTED_EXCITING_RN) < 10**-15
         # Example, p. 119
-        assert mkv.mat_max(sp.ones(1, n.rows) * n - TestExciting.EXPECTED_EXCITING_ONER) < 10**-15
+        assert mat_max(sp.ones(1, n.rows) * n - TestExciting.EXPECTED_EXCITING_ONER) < 10**-15
 
     @staticmethod
     @mark.parametrize(
         "initial_state, trials", [(i, 100_000) for i in range(1, 15)]
     )
     def test_exciting_battle_transitions_monte_carlo(initial_state, trials):
-        seed = mc.set_seed()
+        seed = set_seed()
 
         new_states = defaultdict(int)
         for _ in range(trials):
-            new_state = rb.combat_transition(initial_state)
+            new_state = combat_transition(initial_state)
             new_states[new_state] += 1
         distribution = {key: value / trials for key, value in new_states.items()}
-        assert mkv.is_distribution(distribution)
-        column = mkv.distribution_to_column(len(rb.EXCITING_BATTLE_STATES), distribution)
+        assert is_distribution(distribution)
+        column = distribution_to_column(len(EXCITING_BATTLE_STATES), distribution)
         expected_column = TestExciting.EXPECTED_EXCITING_P[:, initial_state - 1]
-        ic(abs(column - expected_column))
         # Fig 5.7, p. 118
         assert (
-            mkv.mat_max(column - expected_column) < 0.005
+            mat_max(column - expected_column) < 0.005
         ), f"Bad Seed: {seed} and Trials: {trials}"
 
     @staticmethod
@@ -700,25 +712,21 @@ class TestExciting:
         "initial_state, trials", [(i, 100_000) for i in range(1, 11)]
     )
     def test_exciting_outcomes(initial_state, trials):
-        seed = mc.set_seed()
+        seed = set_seed()
 
         distribution = defaultdict(int)
         duration = 0
         for _ in range(trials):
-            terminal_state, rounds = rb.run_combat(initial_state)
+            terminal_state, rounds = run_combat(initial_state)
             distribution[terminal_state] += 1
             duration += rounds
         distribution = {key: count / trials for key, count in distribution.items()}
-        ic(distribution)
         duration = duration / trials
-        ic(duration)
-        column = mkv.distribution_to_column(len(rb.EXCITING_BATTLE_STATES), distribution)
-        ic(column)
+        column = distribution_to_column(len(EXCITING_BATTLE_STATES), distribution)
         column = column[10:14, 0]
-        ic(column)
         expected_column = TestExciting.EXPECTED_EXCITING_RN[:, initial_state - 1]
         assert (
-            mkv.mat_max(column - expected_column) < 0.005
+            mat_max(column - expected_column) < 0.005
         ), f"Bad Seed: {seed} and Trials: {trials}"
         expected_duration = TestExciting.EXPECTED_EXCITING_ONER[:, initial_state - 1][0]
         assert (

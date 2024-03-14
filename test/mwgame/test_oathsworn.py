@@ -1,17 +1,18 @@
 import itertools as it
 
 from pytest import mark
-from icecream import ic  # type: ignore
 
-import mwmath.monte_carlo as mc
-import game.oathsworn as os
 from mwmath.combinations import comb, mult
-
-ic.disable()
+from mwmath.monte_carlo import set_seed
+from mwgame.oathsworn import (
+    WHITE_DIE, WHITE_DECK, BIG_WHITE_DECK,
+    shuffled,
+    hit_drawing, hit_rolling,
+    damage_drawing, damage_rolling,
+)
 
 # setting this False will skip tests with runtimes over 15 seconds
 run_long_tests: bool = False
-
 
 class TestOathsworn:
     # region Constants
@@ -221,9 +222,9 @@ class TestOathsworn:
         """
         trials = 0
         hits = 0
-        for hand in it.permutations(os.WHITE_DECK, k):
+        for hand in it.permutations(WHITE_DECK, k):
             trials += 1
-            if os.hit_drawing(k, hand):
+            if hit_drawing(k, hand):
                 hits += 1
         # Table 5.3, p. 109
         assert (
@@ -234,11 +235,11 @@ class TestOathsworn:
     @staticmethod
     @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_card_hit_monte_carlo(trials: int, k: int) -> None:
-        seed = mc.set_seed()
+        seed = set_seed()
         hits = 0
         for _ in range(trials):
-            deck = os.shuffled(os.WHITE_DECK)
-            if os.hit_drawing(k, deck):
+            deck = shuffled(WHITE_DECK)
+            if hit_drawing(k, deck):
                 hits += 1
         # Table 5.3, p. 109
         assert (
@@ -270,10 +271,10 @@ class TestOathsworn:
     @staticmethod
     @mark.parametrize("trials, n", [(100_000, n) for n in range(11)])
     def test_dice_hit_monte_carlo(trials, n) -> None:
-        seed = mc.set_seed()
+        seed = set_seed()
         hits = 0
         for _ in range(trials):
-            if os.hit_rolling(n, os.WHITE_DIE):
+            if hit_rolling(n, WHITE_DIE):
                 hits += 1
         # Table 5.3, p. 109
         assert (
@@ -301,9 +302,9 @@ class TestOathsworn:
         max_exploding_cards = (
             3  # should get this number by counting the exploding cards
         )
-        for shuffle in it.permutations(os.WHITE_DECK, k + max_exploding_cards):
+        for shuffle in it.permutations(WHITE_DECK, k + max_exploding_cards):
             trials += 1
-            damage += os.damage_drawing(k, shuffle)
+            damage += damage_drawing(k, shuffle)
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k])
@@ -313,11 +314,11 @@ class TestOathsworn:
     @staticmethod
     @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_white_deck_damage_monte_carlo(trials: int, k: int):
-        seed = mc.set_seed()
+        seed = set_seed()
         damage = 0
         for _ in range(trials):
-            deck = os.shuffled(os.WHITE_DECK)
-            damage += os.damage_drawing(k, deck)
+            deck = shuffled(WHITE_DECK)
+            damage += damage_drawing(k, deck)
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 0.1
@@ -341,11 +342,11 @@ class TestOathsworn:
         """
         trials = 0
         damage = 0
-        max_exploding_cards = sum([1 for card in os.BIG_WHITE_DECK if card.exploding])
+        max_exploding_cards = sum([1 for card in BIG_WHITE_DECK if card.exploding])
         assert max_exploding_cards == 15
-        for shuffle in it.permutations(os.BIG_WHITE_DECK, k + max_exploding_cards):
+        for shuffle in it.permutations(BIG_WHITE_DECK, k + max_exploding_cards):
             trials += 1
-            damage += os.damage_drawing(k, shuffle)
+            damage += damage_drawing(k, shuffle)
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
@@ -355,11 +356,11 @@ class TestOathsworn:
     @staticmethod
     @mark.parametrize("trials, k", [(100_000, k) for k in range(11)])
     def test_big_white_deck_damage_monte_carlo(trials: int, k: int):
-        seed = mc.set_seed()
+        seed = set_seed()
         damage = 0
         for _ in range(trials):
-            deck = os.shuffled(os.BIG_WHITE_DECK)
-            damage += os.damage_drawing(k, deck)
+            deck = shuffled(BIG_WHITE_DECK)
+            damage += damage_drawing(k, deck)
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
@@ -404,10 +405,10 @@ class TestOathsworn:
     @staticmethod
     @mark.parametrize("trials, n", [(500_000, n) for n in range(11)])
     def test_white_dice_damage_monte_carlo(trials: int, n: int) -> None:
-        seed = mc.set_seed()
+        seed = set_seed()
         damage = 0
         for _ in range(trials):
-            damage += os.damage_rolling(n, os.WHITE_DIE)
+            damage += damage_rolling(n, WHITE_DIE)
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Dice_Damage[n]) < 0.01

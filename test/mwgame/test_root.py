@@ -1,10 +1,9 @@
-import sympy as sp
 import copy
+import sympy as sp
 
 from pytest_check import check  # type: ignore
 
 from mwmath.extensive_form import BinTreeState
-
 
 def chicken_payoffs():
     return copy.deepcopy(

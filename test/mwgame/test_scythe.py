@@ -1,5 +1,5 @@
 import numpy as np
-import mwmath.normal_form as nf
+from mwmath.normal_form import iterated_reduction
 
 
 def test_reduction():
@@ -23,7 +23,7 @@ def test_reduction():
     )
 
     assert np.array_equal(
-        nf.iterated_reduction(payoffs),
+        iterated_reduction(payoffs),
         np.array(
             [
                 [(0, 0), (0, 3), (0, 4)],

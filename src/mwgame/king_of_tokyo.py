@@ -9,7 +9,7 @@ def roll() -> int:
     return result if result <= 3 else 0
 
 
-def score(rolls: list[int]) -> int:
+def compute_score(rolls: list[int]) -> int:
     """
 
     :param rolls: a list of dice values from King of Tokyo with 0 representing a symbol

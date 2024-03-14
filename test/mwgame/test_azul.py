@@ -4,9 +4,9 @@ import copy
 from pytest import mark
 from pytest_check import check  # type: ignore
 
-import mwmath.monte_carlo as mc
+from mwmath.monte_carlo import set_seed
 from mwmath.extensive_form import GameMove
-from game.azul import AzulTiles, AzulBoard, AzulState, AzulMove
+from mwgame.azul import AzulTiles, AzulBoard, AzulState, AzulMove
 
 class TestAzul:
 
@@ -152,7 +152,7 @@ class TestAzul:
     @staticmethod
     @mark.parametrize("trials", [10_000])
     def test_monte_carlo(trials) -> None:
-        seed = mc.set_seed()
+        seed = set_seed()
         blue_cummulative = (0, 0)
         red_cummulative = (0, 0)
         cyan_cummulative = (0, 0)

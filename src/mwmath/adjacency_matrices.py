@@ -233,7 +233,7 @@ def terminated(matrix: sp.Matrix, absorbing_states: set[int]) -> bool:
     return True
 
 
-def terminal_matrix(matrix: sp.Matrix, absorbing_states: set[int], max_hops=100) -> tuple[int, sp.Matrix]:
+def determine_terminal_matrix(matrix: sp.Matrix, absorbing_states: set[int], max_hops=100) -> tuple[int, sp.Matrix]:
     """
 
     :param matrix: an adjacency matrix

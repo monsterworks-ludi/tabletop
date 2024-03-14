@@ -1,6 +1,6 @@
 import numpy as np
-import mwmath.normal_form as nf
 
+from mwmath.normal_form import iterated_reduction, determine_saddle
 
 def test_rising_sun_reduction():
     payoffs = np.array(
@@ -15,7 +15,7 @@ def test_rising_sun_reduction():
     )
 
     assert np.array_equal(
-        nf.iterated_reduction(payoffs),
+        iterated_reduction(payoffs),
         np.array(
             [
                 [(0, 0), (0, 2), (0, 4)],
@@ -36,7 +36,7 @@ def test_rising_sun_saddle():
         ],
         dtype=[("rose", "<i4"), ("colin", "<i4")],
     )
-    bn_equilibrium = nf.determine_saddle(reduced_payoffs)
+    bn_equilibrium = determine_saddle(reduced_payoffs)
     assert abs(bn_equilibrium[0] - 3 / 5) < 10**-15
     # NOTE: In rising Sun, q is the probability of the second row, not the first.
     # This was done to match the orientation of the table with the heat map.
