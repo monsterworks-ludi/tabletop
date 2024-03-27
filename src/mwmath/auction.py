@@ -1,7 +1,7 @@
 import random
 
 from typing import Callable, Optional
-
+# TODO: TO HERE
 
 class Bidder:
 
