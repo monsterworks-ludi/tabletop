@@ -3,7 +3,7 @@ import itertools as it
 from pytest import mark
 
 from mwmath.combinations import comb, mult
-from mwmath.monte_carlo import set_seed
+from mwmath.monte_carlo import set_seed, bad_seed_message
 from mwgame.oathsworn import (
     WHITE_DIE, WHITE_DECK, BIG_WHITE_DECK,
     shuffled,
@@ -245,7 +245,7 @@ class TestOathsworn:
         assert (
             abs(hits / trials - TestOathsworn.Expected_Card_Hit_Probabilities[k])
             < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
     # endregion
 
@@ -280,7 +280,7 @@ class TestOathsworn:
         assert (
             abs(hits / trials - TestOathsworn.Expected_Dice_Hit_Probabilities[n])
             < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
     # endregion
 
@@ -322,7 +322,7 @@ class TestOathsworn:
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k]) < 0.1
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
     # endregion
 
@@ -365,7 +365,7 @@ class TestOathsworn:
         assert (
             abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
             < 0.02
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
     # endregion
 
@@ -412,7 +412,7 @@ class TestOathsworn:
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Dice_Damage[n]) < 0.01
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
         return
 
     # endregion

@@ -3,7 +3,7 @@ import random
 
 from pytest import mark
 
-from mwmath.monte_carlo import set_seed
+from mwmath.monte_carlo import set_seed, bad_seed_message
 
 from mwmath.combinations import fact, comb, mult
 from mwmath.hand_counter import count_hands_permutation, count_hands_generating
@@ -69,7 +69,7 @@ def test_one_nine_monte_carlo(trials: int) -> None:
     # Formula, p. 106
     assert (
         abs(successes / trials - 3 / 5) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 if __name__ == "__main__":
     ...

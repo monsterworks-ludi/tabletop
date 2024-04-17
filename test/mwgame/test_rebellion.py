@@ -3,7 +3,7 @@ from collections import defaultdict
 import sympy as sp
 from pytest import mark
 
-from mwmath.monte_carlo import set_seed
+from mwmath.monte_carlo import set_seed, bad_seed_message
 from mwmath.markov import (
     rat_mat, transition_matrix,
     mat_max,
@@ -103,15 +103,15 @@ class TestSimple:
         # Example, p. 115
         assert (
             abs(y_destroyed / trials - 5 / 7) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
         # Example, p. 115
         assert (
             abs(both_destroyed / trials - 1 / 7) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
         # Example, p. 115
         assert (
             abs(tie_destroyed / trials - 1 / 7) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
 
 class TestExciting:
@@ -705,7 +705,7 @@ class TestExciting:
         # Fig 5.7, p. 118
         assert (
             mat_max(column - expected_column) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
 
     @staticmethod
     @mark.parametrize(
@@ -727,8 +727,8 @@ class TestExciting:
         expected_column = TestExciting.EXPECTED_EXCITING_RN[:, initial_state - 1]
         assert (
             mat_max(column - expected_column) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)
         expected_duration = TestExciting.EXPECTED_EXCITING_ONER[:, initial_state - 1][0]
         assert (
             abs(duration - expected_duration) < 0.005
-        ), f"Bad Seed: {seed} and Trials: {trials}"
+        ), bad_seed_message(seed, trials)

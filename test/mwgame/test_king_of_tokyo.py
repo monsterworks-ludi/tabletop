@@ -1,6 +1,6 @@
 from pytest import mark
 
-from mwmath.monte_carlo import set_seed
+from mwmath.monte_carlo import set_seed, bad_seed_message
 from mwgame.king_of_tokyo import compute_score, roll
 from mwmath.combinations import mult
 
@@ -56,7 +56,7 @@ def test_scores_monte_carlo(trials: int) -> None:
     # Example, p. 103
     assert (
         abs(scores / trials - 159 / 216) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 if __name__ == "__main__":
     ...

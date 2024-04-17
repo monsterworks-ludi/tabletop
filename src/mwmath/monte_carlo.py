@@ -6,3 +6,6 @@ def set_seed() -> int:
     rnd.seed(seed)
     return seed
 
+
+def bad_seed_message(seed, trials):
+    return f"Failed Monte Carlo Experiment with {seed=} and {trials=}"

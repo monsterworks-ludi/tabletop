@@ -3,7 +3,7 @@ import random
 
 from pytest import mark
 
-from mwmath.monte_carlo import set_seed
+from mwmath.monte_carlo import set_seed, bad_seed_message
 from mwmath.combinations import mult, comb
 
 # 1 -> Eagle
@@ -51,7 +51,7 @@ def test_detection_monte_carlo(trials: int) -> None:
     # Formula, p. 105
     assert (
         abs(successes / trials - 15625 / 23328) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 def test_plot_success_formula() -> None:
     total = 0.0
@@ -88,7 +88,7 @@ def test_plot_success_monte_carlo(trials) -> None:
     # Formula, p. 105
     assert (
         abs(successes / trials - 379 / 2187) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 def test_one_eagle_five_targets_formula() -> None:
     # Formula, p. 105
@@ -133,7 +133,7 @@ def test_one_eagle_five_targets_monte_carlo(trials: int) -> None:
     # Formula, p. 105
     assert (
         abs(successes / trials - 7 / 486) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 def test_success_formula() -> None:
     value = 0.0
@@ -177,7 +177,7 @@ def test_success_monte_carlo(trials: int) -> None:
     # Formula, p. 105
     assert (
         abs(successes / trials - 110 / 729) < 0.005
-    ), f"Bad Seed: {seed} and Trials: {trials}"
+    ), bad_seed_message(seed, trials)
 
 if __name__ == "__main__":
     ...
