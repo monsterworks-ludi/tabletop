@@ -4,6 +4,7 @@ import sympy as sp
 
 from mwmath.adjacency_matrices import submatrix_symbolic, find_all_paths
 from mwgame.ticket_to_ride import (
+    POINTS,
     NE_CITIES,
     NE_COST_MATRIX, NE_POINTS_MATRIX, NE_COMBINED_MATRIX, NE_COLOR_MATRIX,
     NE_CONNECTIONS,
@@ -16,6 +17,12 @@ from mwgame.ticket_to_ride import (
     connection_weight,
     los_angeles, duluth, helena, denver, phoenix, oklahoma_city, el_paso
 )
+
+def test_superadditive():
+    assert POINTS[1] + POINTS[1] == POINTS[2]
+    for i, j in filter(lambda ij: 2 < ij[0] + ij[1] < 7, it.product(range(1, 7),  repeat=2)):
+        assert POINTS[i] + POINTS[j] <= POINTS[i + j]
+
 
 class TestSimple:
     @staticmethod

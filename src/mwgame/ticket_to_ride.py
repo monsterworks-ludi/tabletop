@@ -1,4 +1,5 @@
 import sympy as sp
+import itertools as it
 
 import mwmath.adjacency_matrices as am
 
