@@ -57,7 +57,7 @@ def distribution_to_column(state_count, distribution):
 
 
 def is_distribution(dist):
-    return abs(sum(value for value in dist.values()) - 1) < 10**-15
+    return abs(sum(value for value in dist.values()) - 1) < 1e-15
 
 def zero():
     return sp.Rational(0, 1)

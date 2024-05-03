@@ -211,7 +211,7 @@ class TestOathsworn:
         # Table 5.3, p. 109
         assert (
             abs(hit_probability - TestOathsworn.Expected_Card_Hit_Probabilities[k])
-            < 10**-15
+            < 1e-15
         )
 
     @staticmethod
@@ -229,7 +229,7 @@ class TestOathsworn:
         # Table 5.3, p. 109
         assert (
             abs(hits / trials - TestOathsworn.Expected_Card_Hit_Probabilities[k])
-            < 10**-15
+            < 1e-15
         )
 
     @staticmethod
@@ -260,7 +260,7 @@ class TestOathsworn:
         # Table 5.3, p. 109
         assert (
             abs(hit_probability - TestOathsworn.Expected_Dice_Hit_Probabilities[n])
-            < 10**-15
+            < 1e-15
         )
 
     @staticmethod
@@ -308,7 +308,7 @@ class TestOathsworn:
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_White_Card_Damage[k])
-            < 10**-15
+            < 1e-15
         )
 
     @staticmethod
@@ -350,7 +350,7 @@ class TestOathsworn:
         # Table 5.4, p. 110
         assert (
             abs(damage / trials - TestOathsworn.Expected_Big_White_Card_Damage[k])
-            < 10**-15
+            < 1e-15
         )
 
     @staticmethod
@@ -391,8 +391,8 @@ class TestOathsworn:
         assert (
             # should this be a relative error?
             abs(damage - TestOathsworn.Expected_White_Dice_Damage[n])
-            < 10**-14
-            # tolerance of 10**-15 doesn't work with n = 8
+            < 1e-14
+            # tolerance of 1e-15 doesn't work with n = 8
             # denominator is 405, maybe that just doesn't translate well to binary
         )
 

@@ -676,16 +676,16 @@ class TestExciting:
     def test_exciting_battle_markov():
         p = transition_matrix(14, exciting_transition_distribution)
         # Fig 5.7, p. 118
-        assert mat_max(p - TestExciting.EXPECTED_EXCITING_P) < 10**-15
+        assert mat_max(p - TestExciting.EXPECTED_EXCITING_P) < 1e-15
         q = p[0:10, 0:10]
         r = p[10:14, 0:10]
         n = markov_n(q)
         # Example, p. 119
-        assert mat_max(n - TestExciting.EXPECTED_EXCITING_N) < 10**-15
+        assert mat_max(n - TestExciting.EXPECTED_EXCITING_N) < 1e-15
         # Example, p. 119
-        assert mat_max(r * n - TestExciting.EXPECTED_EXCITING_RN) < 10**-15
+        assert mat_max(r * n - TestExciting.EXPECTED_EXCITING_RN) < 1e-15
         # Example, p. 119
-        assert mat_max(sp.ones(1, n.rows) * n - TestExciting.EXPECTED_EXCITING_ONER) < 10**-15
+        assert mat_max(sp.ones(1, n.rows) * n - TestExciting.EXPECTED_EXCITING_ONER) < 1e-15
 
     @staticmethod
     @mark.parametrize(

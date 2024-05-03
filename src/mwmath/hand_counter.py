@@ -92,7 +92,7 @@ def count_hands_permutation(deck: DeckSpecification, hand_size: int) -> int:
     count: int
     for count, permutation in enumerate(it.permutations(deck_list, hand_size)):
         percentage = count / perm_count
-        if percentage > last_report + 10**-8:
+        if percentage > last_report + 1e-8:
             last_report = percentage
         specification = hashable(collapse_hand(set(permutation)))
         hands.add(specification)

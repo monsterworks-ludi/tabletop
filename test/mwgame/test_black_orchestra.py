@@ -20,7 +20,7 @@ def test_detection_formula() -> None:
             )
             - 15625 / 23328
         )
-        < 10**-15
+        < 1e-15
     )
     assert abs(15625 / 23328 - 0.67) < 0.005
 
@@ -58,7 +58,7 @@ def test_plot_success_formula() -> None:
     for k in range(4, 8):
         total += comb(7, k) * (2 / 6) ** k * (4 / 6) ** (7 - k)
     # Formula, p. 105
-    assert abs(total - 379 / 2187) < 10**-15
+    assert abs(total - 379 / 2187) < 1e-15
     assert abs(379 / 2187 - 0.17) < 0.005
 
 def test_plot_success_exhaustive() -> None:
@@ -97,7 +97,7 @@ def test_one_eagle_five_targets_formula() -> None:
             mult((1, 5, 1)) * (1 / 6) ** 1 * (2 / 6) ** 5 * (3 / 6) ** 1
             - 7 / 486
         )
-        < 10**-15
+        < 1e-15
     )
 
 def test_one_eagle_five_targets_exhaustive() -> None:
@@ -143,7 +143,7 @@ def test_success_formula() -> None:
                 mult((i, j, k)) * (1 / 6) ** i * (2 / 6) ** j * (3 / 6) ** k
             )
     # Formula, p. 105
-    assert abs(value - 110 / 729) < 10**-15
+    assert abs(value - 110 / 729) < 1e-15
     assert abs(110 / 729 - 0.15) < 0.05
 
 def test_success_exhaustive() -> None:
@@ -157,7 +157,7 @@ def test_success_exhaustive() -> None:
         ):
             successes += 1
     # Formula, p. 105
-    assert abs(successes / trials - 110 / 729) < 10**-15
+    assert abs(successes / trials - 110 / 729) < 1e-15
 
 @mark.parametrize("trials", [100_000])
 def test_success_monte_carlo(trials: int) -> None:

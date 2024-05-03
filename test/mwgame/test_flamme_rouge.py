@@ -31,7 +31,7 @@ def test_hand_counts() -> None:
 
 def test_one_nine_formula() -> None:
     # Formula, p. 106
-    assert abs(comb(2, 1) * comb(4, 2) / comb(6, 3) - 3 / 5) < 10**-15
+    assert abs(comb(2, 1) * comb(4, 2) / comb(6, 3) - 3 / 5) < 1e-15
     assert abs(3 / 5 - 0.60) < 0.005
 
 def test_one_nine_exhaustive() -> None:
@@ -50,7 +50,7 @@ def test_one_nine_exhaustive() -> None:
     assert trials == 120
     assert successes == 72
     # Formula, p. 106
-    assert abs(successes / trials - 3 / 5) < 10**-15
+    assert abs(successes / trials - 3 / 5) < 1e-15
     assert abs(3 / 5 - 0.60) < 0.05
 
 @mark.parametrize("trials", [100_000])

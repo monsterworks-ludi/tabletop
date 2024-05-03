@@ -214,15 +214,15 @@ class TestAzul:
         with check:
             # Figure 6.10, p. 128
             assert (
-                abs((blue_mean[0] - blue_mean[1]) - 2.0) < 10**-1
+                abs((blue_mean[0] - blue_mean[1]) - 2.0) < 1e-1
             ), bad_seed_message(seed, trials)
         with check:
             # Figure 6.10, p. 128
             assert (
-                abs((red_mean[0] - red_mean[1]) - 3.2) < 10**-1
+                abs((red_mean[0] - red_mean[1]) - 3.2) < 1e-1
             ), bad_seed_message(seed, trials)
         with check:
             # Figure 6.10, p. 128
             assert (
-                abs((cyan_mean[0] - cyan_mean[1]) - 3.4) < 10**-1
+                abs((cyan_mean[0] - cyan_mean[1]) - 3.4) < 1e-1
             ), bad_seed_message(seed, trials)
