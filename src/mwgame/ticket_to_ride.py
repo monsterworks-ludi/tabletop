@@ -525,5 +525,27 @@ assert POINTS_MATRIX.is_symmetric()
 assert COMBINED_MATRIX.is_symmetric()
 assert COLOR_POINTS_MATRIX.is_symmetric()
 
+def minimal_routes(dest, orig, matrix=COMBINED_MATRIX):
+    combined_matrix = sp.eye(len(CITIES))
+    combined = sp.Integer(0)
+    power = 0
+    for power in it.count(1):
+        combined_matrix = combined_matrix * matrix
+        combined = connection_weight(combined_matrix, dest, orig)
+        if not combined == sp.Integer(0):
+            break
+    return power, combined
+
+def best_avg_points(dest, orig, ticket_points):
+    power, combined = minimal_routes(dest, orig)
+    terms = sp.Poly(combined).terms()
+    return power, max((dp + ticket_points)/dx for ((dx, dp), co) in terms)
+
+def pnwmaa_talk():
+    print(best_avg_points(new_york, seattle, 22))
+    print(best_avg_points(new_york, los_angeles, 21))
+    print(best_avg_points(miami, los_angeles, 20))
+    print(best_avg_points(vancouver, montreal, 20))
+
 if __name__ == "__main__":
     ...

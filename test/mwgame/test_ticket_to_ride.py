@@ -15,7 +15,9 @@ from mwgame.ticket_to_ride import (
     COST_MATRIX, POINTS_MATRIX, COMBINED_MATRIX, COLOR_POINTS_MATRIX,
     ADJACENCY_MATRIX, COLOR_CITY_POINTS_MATRIX, CITY_POINTS_MATRIX,
     connection_weight,
-    los_angeles, duluth, helena, denver, phoenix, oklahoma_city, el_paso
+    los_angeles, duluth, helena, denver, phoenix, oklahoma_city, el_paso,
+
+    minimal_routes
 )
 
 def test_superadditive():
@@ -267,38 +269,20 @@ class TestSimple:
 class TestFull:
     @staticmethod
     def test_ttr_costs() -> None:
-        montreal_los_angeles_cost = sp.Integer(0)
-        cost_matrix = sp.eye(len(CITIES))
-        power = 0
-        for power in it.count(1):
-            cost_matrix *= COST_MATRIX
-            montreal_los_angeles_cost = connection_weight(
-                cost_matrix, los_angeles, montreal
-            )
-            if not montreal_los_angeles_cost == sp.Integer(0):
-                break
+        power, montreal_los_angeles = minimal_routes(los_angeles, montreal, COST_MATRIX)
         # Not in text
         assert power == 6
-        assert montreal_los_angeles_cost.equals(
+        assert montreal_los_angeles.equals(
             2 * x**27 + 9 * x**26 + 4 * x**25 + 5 * x**23 + 3 * x**22
         )
-        assert montreal_los_angeles_cost.subs(x, 1) == 23
+        assert montreal_los_angeles.subs(x, 1) == 23
 
     @staticmethod
     def test_ttr_points() -> None:
-        montreal_los_angeles_points = sp.Integer(0)
-        points_matrix = sp.eye(len(CITIES))
-        power = 0
-        for power in it.count(1):
-            points_matrix *= POINTS_MATRIX
-            montreal_los_angeles_points = connection_weight(
-                points_matrix, los_angeles, montreal
-            )
-            if not montreal_los_angeles_points == 0:
-                break
+        power, montreal_los_angeles = minimal_routes(los_angeles, montreal, POINTS_MATRIX)
         # Example, p. 77
         assert power == 6
-        assert montreal_los_angeles_points.equals(
+        assert montreal_los_angeles.equals(
             v**55
             + v**53
             + 4 * v**52
@@ -309,23 +293,14 @@ class TestFull:
             + 2 * v**39
             + 2 * v**37
         )
-        assert montreal_los_angeles_points.subs(v, 1) == 23
+        assert montreal_los_angeles.subs(v, 1) == 23
 
     @staticmethod
     def test_ttr_combined() -> None:
-        montreal_los_angeles_combined = sp.Integer(0)
-        combined_matrix = sp.eye(len(CITIES))
-        power = 0
-        for power in it.count(1):
-            combined_matrix *= COMBINED_MATRIX
-            montreal_los_angeles_combined = connection_weight(
-                combined_matrix, los_angeles, montreal
-            )
-            if not montreal_los_angeles_combined == sp.Integer(0):
-                break
-        # Example, p.77
+        power, montreal_los_angeles = minimal_routes(los_angeles, montreal, COMBINED_MATRIX)
+        # Example, p. 77
         assert power == 6
-        assert montreal_los_angeles_combined.equals(
+        assert montreal_los_angeles.equals(
             v**55 * x**27
             + v**53 * x**27
             + 4 * v**52 * x**26
@@ -337,24 +312,15 @@ class TestFull:
             + v**39 * x**22
             + 2 * v**37 * x**22
         )
-        assert montreal_los_angeles_combined.subs(v, 1).subs(x, 1) == 23
+        assert montreal_los_angeles.subs({x: 1, v: 1}) == 23
 
     @staticmethod
     def test_ttr_colors() -> None:
-        montreal_los_angeles_colors = sp.Integer(0)
-        color_matrix = sp.eye(len(CITIES))
-        power = 0
-        for power in it.count(1):
-            color_matrix *= COLOR_POINTS_MATRIX
-            montreal_los_angeles_colors = connection_weight(
-                color_matrix, los_angeles, montreal
-            )
-            if not montreal_los_angeles_colors == sp.Integer(0):
-                break
-        # Example, p.78
+        power, montreal_los_angeles = minimal_routes(los_angeles, montreal, COLOR_POINTS_MATRIX)
+        # Example, p. 78
         assert power == 6
         assert (
-            montreal_los_angeles_colors.expand()
+            montreal_los_angeles.expand()
             .as_expr()
             .coeff(v, 55)
             .equals(g**4 * p**6 * t**6 * w**5 * x**6)
@@ -377,20 +343,11 @@ class TestFull:
 
     @staticmethod
     def test_six_hop_route() -> None:
-        montreal_los_angeles_route = sp.Integer(0)
-        route_matrix = sp.eye(len(CITIES))
-        power = 0
-        for power in it.count(1):
-            route_matrix *= COLOR_CITY_POINTS_MATRIX
-            montreal_los_angeles_route = connection_weight(
-                route_matrix, los_angeles, montreal
-            )
-            if not montreal_los_angeles_route == sp.Integer(0):
-                break
+        power, montreal_los_angeles = minimal_routes(los_angeles, montreal, COLOR_CITY_POINTS_MATRIX)
         # Comment on p. 78
         assert power == 6
         assert (
-            montreal_los_angeles_route.expand()
+            montreal_los_angeles.expand()
             .as_expr()
             .coeff(v, 55)
             .equals(
