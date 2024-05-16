@@ -1,228 +1,187 @@
+import abc
 import random
 
-from typing import Callable, Optional
-# TODO: TO HERE
 
-class Bidder:
-
-    DELTA = 10**-4
-
-    def __init__(self, number: int, valuation: float, strategy):
-        self._number = number
-        self._valuation = valuation
-        self._active = True
-        self._strategy = strategy
-
-    def __repr__(self) -> str:
-        return f"{self.valuation}"
-
-    @property
-    def number(self) -> int:
-        return self._number
-
-    @property
-    def valuation(self):
-        return self._valuation
-
-    @property
-    def active(self) -> bool:
-        return self._active
-
-    def bid(self, current_bid: float) -> float:
-        bid = self._strategy(self.valuation, current_bid)
-        if bid is None:
-            self._active = False
-        return bid
-
-Auction = Callable[[list[Bidder]], tuple[float, Bidder, float]]
-Strategy = Callable[[float, float], Optional[float]]
-
-def run_english_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-    current_bid = 0.0
-    highest_bidder = None
-    active_bidders = tuple(bidder for bidder in bidders if bidder.active)
-    while active_bidders:
-        for bidder in active_bidders:
-            bid = bidder.bid(current_bid)
-            if bid is not None:
-                current_bid = bid
-                highest_bidder = bidder
-        active_bidders = tuple(
-            bidder
-            for bidder in bidders
-            if bidder.active and bidder is not highest_bidder
-        )
-    assert highest_bidder is not None
-    return current_bid, highest_bidder, current_bid
+def uniform_distribution() -> float:
+    """
+    :return: a random number between 0 and 1 with uniform distribution.
+    """
+    return random.uniform(0, 1)
 
 
-def english_strategy(valuation: float, current_bid: float) -> Optional[float]:
-    if valuation >= current_bid + Bidder.DELTA:
-        return current_bid + Bidder.DELTA
-    else:
-        return None
+def triangular_distribution() -> float:
+    """
+
+    :return: a random number between 0 and 1 with triangular distribution.
+    """
+    return random.triangular()
 
 
-def run_vickrey_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-    sorted_bidders = sorted(bidders, key=lambda bidder: bidder.valuation, reverse=True)
-    highest_bidder = sorted_bidders[0]
-    highest_bid = sorted_bidders[1].bid(0.0)
-    return highest_bid, highest_bidder, highest_bid
+def gaussian_distribution() -> float:
+    """
+    Mean is 0.5 and sigma is 0.1.
+    Values outside the range [0,1] are clipped to 0 and 1.
+    The probability that a value is clipped is roughly 5.7e-7
 
-
-def vickrey_strategy(valuation: float, _: float) -> Optional[float]:
-    return valuation
-
-
-def run_blind_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-    sorted_bidders = sorted(bidders, key=lambda bidder: bidder.valuation, reverse=True)
-    highest_bidder = sorted_bidders[0]
-    highest_bid = sorted_bidders[0].bid(0.0)
-    return highest_bid, highest_bidder, highest_bid
-
-
-def make_blind_strategy(bidder_count: int) -> Strategy:
-
-    def blind_strategy(valuation: float, _: float) -> Optional[float]:
-        return (bidder_count - 1) / bidder_count * valuation
-
-    return blind_strategy
-
-
-def run_dutch_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-    current_bid = 1.0 + Bidder.DELTA
-    highest_bidder = None
-    while highest_bidder is None:
-        current_bid -= Bidder.DELTA
-        for bidder in bidders:
-            if bidder.bid(current_bid) >= current_bid:
-                highest_bidder = bidder
-                break
-    return current_bid, highest_bidder, current_bid
-
-
-def make_dutch_strategy(bidder_count: int) -> Strategy:
-
-    def dutch_strategy(valuation: float, _: float) -> Optional[float]:
-        return (bidder_count - 1) / bidder_count * valuation
-
-    return dutch_strategy
-
-
-def run_allpay_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-    sorted_bidders = sorted(bidders, key=lambda bidder: bidder.valuation, reverse=True)
-    highest_bidder = sorted_bidders[0]
-    highest_bid = sorted_bidders[0].bid(0.0)
-    revenue = sum(bidder.bid(0.0) for bidder in sorted_bidders)
-    return highest_bid, highest_bidder, revenue
-
-
-def make_allpay_strategy(bidder_count: int) -> Strategy:
-
-    def allpay_strategy(valuation: float, _: float) -> float:
-        return (bidder_count - 1) / bidder_count * (valuation**bidder_count)
-
-    return allpay_strategy
-
-
-def make_partialpay_auction(partial: float) -> Auction:
-
-    def run_partialpay_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-        sorted_bidders = sorted(
-            bidders, key=lambda bidder: bidder.valuation, reverse=True
-        )
-        highest_bidder = sorted_bidders[0]
-        highest_bid = sorted_bidders[0].bid(0.0)
-        revenue = (sorted_bidders[0].bid(0.0)
-                   + partial * sum(bidder.bid(0.0) for bidder in sorted_bidders[1:]))
-        return highest_bid, highest_bidder, revenue
-
-    return run_partialpay_auction
-
-
-# def run_halfpay_auction(bidders: list[Bidder]) -> tuple[float, Bidder, float]:
-#     sorted_bidders = sorted(bidders, key=lambda bidder: bidder.valuation, reverse=True)
-#     highest_bidder = sorted_bidders[0]
-#     highest_bid = sorted_bidders[0].bid(0.0)
-#     revenue = sorted_bidders[0].bid(0.0) + 0.5 * sum(
-#         bidder.bid(0.0) for bidder in sorted_bidders[1:]
-#     )
-#     return highest_bid, highest_bidder, revenue
-
-
-def make_partialpay_strategy(bidder_count: int, partial: float) -> Strategy:
-
-    def partialpay_strategy(valuation: float, _: float) -> Optional[float]:
-        return (
-            (bidder_count - 1) / bidder_count * (valuation**bidder_count)
-            * 1 / (partial + (1 - partial) * valuation ** (bidder_count - 1))
-        )
-
-    return partialpay_strategy
-
-
-def truncated_gauss(mu: float, sigma: float):
-    value = random.gauss(mu, sigma)
+    :return: a random number between 0 and 1 with a clipped Gaussian distribution.
+    """
+    value = random.gauss(0.5, 0.1)
     return max(min(value, 1.0), 0.0)
 
 
-def random_valuation() -> float:
-    return random.uniform(0, 1)
-    # random.uniform(0, 1)
-    # random.triangular(0, 1)
-    # random.bivariate(alpha, beta)
-    # random.gauss(0.5, 0.01) <- will need to truncate this
+def min_gap(valuations: tuple[float, ...]) -> float:
+    """
+    Determines the smallest distance between any two values in the valuations
+
+    :param valuations: a list of floats
+    :return: the smallest distance between any two values in the list
+    """
+    return min((abs(valuations[i] - valuations[j]) for i in range(len(valuations)) for j in range(i)))
 
 
-def main() -> None:
-    bidder_count = 5
-    trials = 10_000
+def random_valuations(bidder_count, distribution=uniform_distribution, epsilon=1e-3) -> tuple[float, ...]:
+    """
 
-    names = ("English", "Vickrey", "Blind", "Dutch", "All-Pay", "Half-Pay", "Double-Pay")
-    auctions: tuple[Auction, ...] = (
-        run_english_auction,
-        run_vickrey_auction,
-        run_blind_auction,
-        run_dutch_auction,
-        run_allpay_auction,
-        make_partialpay_auction(0.5),
-        make_partialpay_auction(2),
-    )
-    strategies: tuple[Strategy, ...] = (
-        english_strategy,
-        vickrey_strategy,
-        make_blind_strategy(bidder_count),
-        make_dutch_strategy(bidder_count),
-        make_allpay_strategy(bidder_count),
-        make_partialpay_strategy(bidder_count, 0.5),
-        make_partialpay_strategy(bidder_count, 2),
-    )
-    profits: list[float] = [0.0 for _ in names]
-    revenues: list[float] = [0.0 for _ in names]
+    :param bidder_count: number of valuations to compute
+    :param distribution: the random distribution from which the valuations are taken
+    :param epsilon: the minimum distance between any two values in the valuations
+    :return: a list of random numbers from 0 to 1, each pair of which is no closer than epsilon
+    """
+    valuations = tuple(distribution() for _ in range(bidder_count))
+    gap = min_gap(valuations)
+    while gap <= epsilon:
+        valuations = tuple(distribution() for _ in range(bidder_count))
+        gap = min_gap(valuations)
 
-    for _ in range(trials):
-        valuations = tuple(random_valuation() for _ in range(bidder_count))
-        assert len(set(valuations)) == len(valuations)
+    return valuations
 
-        for n, (run_auction, strategy) in enumerate(zip(auctions, strategies)):
-            bidders = [
-                Bidder(number, valuations[number], strategy)
-                for number in range(bidder_count)
-            ]
-            highest_bid, highest_bidder, revenue = run_auction(bidders)
-            profits[n] += highest_bidder.valuation - highest_bid
-            revenues[n] += revenue
 
-    print(f"If Uniformly Distributed Valuations, profit ≈ {1/(bidder_count + 1)}")
-    for name, profit in zip(names, profits):
-        print(f"{name} Profit {profit/trials}")
-    print("")
-    print(
-        f"If Uniformly Distributed Valuations, revenue ≈ {(bidder_count - 1)/(bidder_count + 1)}"
-    )
-    for name, revenue in zip(names, revenues):
-        print(f"{name} Revenue: {revenue/trials}")
+class Bidder(metaclass=abc.ABCMeta):
 
+    def __init__(self, index, valuation):
+        self._valuation = valuation
+        self._index = index
+
+    def __repr__(self) -> str:
+        return f"{self.index}: {self.valuation}"
+
+    @property
+    def index(self) -> int:
+        return self._index
+
+    @property
+    def valuation(self) -> float:
+        return self._valuation
+
+    @property
+    @abc.abstractmethod
+    def max_bid(self) -> float:
+        return 0
+
+
+class ShadedBidder(Bidder):
+    def __init__(self, index, valuation, shading):
+        super().__init__(index, valuation)
+        self._shading = shading
+
+    @property
+    def shading(self) -> float:
+        return self._shading
+
+    @property
+    def max_bid(self) -> float:
+        return self._shading * self._valuation
+
+
+class EnglishBidder(ShadedBidder):
+
+    def __init__(self, index: int, valuation: float) -> None:
+        super().__init__(index, valuation, 1)
+
+
+def run_english_auction(bidders: list[Bidder], min_bid_increment=1e-3) -> tuple[float, Bidder]:
+    current_bid = 0.0
+    active_bidders = tuple(bidder for bidder in bidders if bidder.max_bid >= current_bid)
+    while len(active_bidders) > 1:
+        current_bid += min_bid_increment
+        active_bidders = tuple(
+            bidder
+            for bidder in bidders
+            if bidder.max_bid >= current_bid
+        )
+    assert len(active_bidders) == 1, "Tied Bidders"
+    return current_bid, active_bidders[0]
+
+
+def run_vickrey_auction(bidders: list[Bidder]) -> tuple[float, Bidder]:
+    sorted_bidders = sorted(bidders, key=lambda bidder: bidder.max_bid, reverse=True)
+    highest_bidder = sorted_bidders[0]
+    second_bid = sorted_bidders[1].max_bid
+
+    return second_bid, highest_bidder
+
+
+class BlindBidder(ShadedBidder):
+    def __init__(self, index: int, valuation: float, bidder_count: int):
+        super().__init__(index, valuation, (bidder_count - 1) / bidder_count)
+
+
+def run_blind_auction(bidders: list[Bidder]) -> tuple[float, Bidder]:
+    sorted_bidders = sorted(bidders, key=lambda bidder: bidder.max_bid, reverse=True)
+    highest_bidder = sorted_bidders[0]
+    highest_bid = highest_bidder.max_bid
+
+    return highest_bid, highest_bidder
+
+
+def run_dutch_auction(bidders: list[Bidder], min_bid_increment=1e-3, current_bid=1.0) -> tuple[float, Bidder]:
+    while current_bid >= 0:
+        for bidder in bidders:
+            if bidder.max_bid > current_bid:
+                return current_bid, bidder
+        current_bid -= min_bid_increment
+    assert False
+
+
+class ShadedPowerBidder(Bidder):
+    def __init__(self, index, valuation, shading, power):
+        super().__init__(index, valuation)
+        self._shading = shading
+        self._power = power
+
+    @property
+    def shading(self):
+        return self._shading
+
+    @property
+    def power(self):
+        return self._power
+
+    @property
+    def max_bid(self) -> float:
+        return self._shading * (self.valuation ** self._power)
+
+
+class PartialPayBidder(Bidder):
+    def __init__(self, index: int, valuation: float, bidder_count: int, loser_penalty):
+        super().__init__(index, valuation)
+        self._bidder_count = bidder_count
+        self._loser_penalty = loser_penalty
+
+    @property
+    def bidder_count(self):
+        return self._bidder_count
+
+    @property
+    def loser_penalty(self):
+        return self._loser_penalty
+
+    @property
+    def max_bid(self):
+        return (
+                (self.bidder_count - 1) / self.bidder_count * self.valuation ** self.bidder_count
+                * 1 / (self.loser_penalty + (1 - self.loser_penalty) * self.valuation ** (self.bidder_count - 1))
+        )
 
 if __name__ == "__main__":
-    main()
+    pass
