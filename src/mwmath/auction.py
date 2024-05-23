@@ -100,6 +100,7 @@ class EnglishBidder(ShadedBidder):
 
 
 def run_english_auction(bidders: list[Bidder], min_bid_increment=1e-3) -> tuple[float, Bidder]:
+    # should I handle the case where no one bids here?
     current_bid = 0.0
     active_bidders = tuple(bidder for bidder in bidders if bidder.max_bid >= current_bid)
     while len(active_bidders) > 1:
