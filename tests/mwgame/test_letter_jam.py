@@ -33,8 +33,10 @@ def test_gnomes():
             assert (signal - gnome_sum) % 5 == colors[gnome_number]
 
 def test_mux():
-    # Example, p. X, see Errata
+    # Example, p. 169, see Errata
     assert mux_word('BLCNO') == 17
+    assert mux_word('BLNO') == 15
+    assert mux_word('BLCNO') - mux_word('BLNO') == mux_word('C')
 
 def test_scrabble():
     assert bad_pairs(search=search_scrabble) == {('F', 'C'), ('F', 'K'), ('G', 'C'), ('N', 'C'), ('U', 'W')}
