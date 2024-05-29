@@ -281,6 +281,7 @@ def new_pendants_from_path(conn: LabeledConnections, path: Path) -> tuple[Pendan
 def find_all_paths(
     conn: LabeledConnections,
     path: Path,
+    *,
     all_paths: Optional[dict[int, set[Path]]] = None,
     dest: Optional[sp.Symbol] = None,
     max_length: Optional[int] = None,
@@ -307,9 +308,8 @@ def find_all_paths(
         if pendant[1] == dest:
             all_paths[len(new_path) - 1].add(new_path)
         else:
-            find_all_paths(conn, new_path, all_paths, dest, max_length)
+            find_all_paths(conn, new_path, all_paths=all_paths, dest=dest, max_length=max_length)
     return all_paths
-
 
 def path_string(path: Path) -> str:
     """
