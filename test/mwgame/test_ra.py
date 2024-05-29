@@ -11,7 +11,7 @@ from mwgame.ra import RaBidder, run_continuous_ra_auction
 
 @mark.parametrize("trials", [100_000])
 def test_continuous_ra_shading(trials):
-    # Table, p.
+    # Table 7.1, see Errata.
     seed = set_seed()
     expected0 = np.array([[0.08, 0.08, 0.08, 0.08, 0.08],
                           [0.26, 0.26, 0.26, 0.26, 0.26],
