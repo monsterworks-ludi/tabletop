@@ -11,7 +11,6 @@ from mwgame.ticket_to_ride import (
     pittsburgh, washington, toronto, new_york, montreal, boston,
     x, v, b, g, p, r, t, w, y,
 
-    CITIES,
     COST_MATRIX, POINTS_MATRIX, COMBINED_MATRIX, COLOR_POINTS_MATRIX,
     ADJACENCY_MATRIX, COLOR_CITY_POINTS_MATRIX, CITY_POINTS_MATRIX,
     connection_weight,
